@@ -1,0 +1,109 @@
+// tz182736 :{202402021426: remove SyncSeq table }, {20240202:add ClientLastSyncSeq }, {202401311428:add syncId}, 
+// * keep this option sync with [src\utilities\proto-utils.ts]
+// ? npx proto-loader-gen-types --keepCase=true --longs=String --defaults --oneofs --grpcLib=@grpc/grpc-js --includeComments --protoPath ./src/proto --includeDirs=./src/proto --outDir=./src/proto/generated NumberSaleService.proto 
+// ? npx fix-esm-import-path ./src/proto/generated/
+
+// [others options : --enums=String ]
+// **  esm compatible -> use npm install --global fix-esm-import-path .\src\proto\generated\
+// import "google/protobuf/timestamp.proto";
+
+syntax = "proto3";
+
+option csharp_namespace = "Dps2n3.Data.Sync";
+package  Dps2n3Grpc;
+
+// grpc-js not supporting interceptor for auth yet. work around as custom Metadata { { "token", "secret" } }
+service NSaleService{ 
+
+  rpc AuthServerUser(Empty) returns(Message);
+  rpc JoinNSaleStream(NSaleStreamJoinMsg) returns(stream NSaleStreamRspn);
+
+  rpc UpsertNSale(NSaleMsg) returns(SyncSeqMsg);
+  rpc UpsertNSaleDtl(NSaleDtlMsg) returns(SyncSeqMsg);
+
+  rpc RemoveNSale(EntityDeleteMsg) returns(SyncSeqMsg); // TODO: will remove later using upsert to update delete flag
+  rpc RemoveNSaleDtl(EntityDeleteMsg) returns(SyncSeqMsg); // TODO: will remove later using upsert to update delete flag
+
+  // require adminkey, credential was pass in metadata.
+  rpc UpsertServerUser(Empty) returns(EntityStatusMsg);
+  rpc DeleteServerUser(DpsUserSaleGroup) returns(EntityStatusMsg);
+  rpc AssignUserSaleGroup(DpsUserSaleGroup) returns(EntityStatusMsg);
+  rpc DeleteUserSaleGroup(DpsUserSaleGroup) returns(EntityStatusMsg);
+ 
+}
+
+//** generic message */
+message Empty { }
+message Message { string data = 1; }
+
+//** Admin Message */
+message DpsUserSaleGroup { string UserName = 1; uint32 GroupId = 2;  int32 Status = 3; }
+enum BetTypeEnumPb { BET_2D = 0; BET_3D = 1; }
+enum EntityTypeEnumPb { NSale = 0; NSaleDtl = 1; }
+
+//** NSale Sync message */ 
+message SyncGpMsg { uint32 GroupId = 1;  uint32 UserId = 2; string GroupKey = 3; uint32 ClientLastSyncSeq = 4; }
+message SyncSeqMsg { string SeqKey = 1; uint32 UserId =2; EntityTypeEnumPb EntityType =3; uint32  SeqValue = 4; }
+
+message NSaleStreamJoinMsg { BetTypeEnumPb  BetType = 1; uint32  BetPeriod = 2; uint32 UserId = 3;  repeated SyncGpMsg GroupList = 5; }
+
+// !~(\d+)(\.?)DpsStream
+message NSaleStreamRspn{  
+    BetTypeEnumPb  BetType = 1;  
+    uint32  BetPeriod = 2;  
+    uint32 GroupId = 3;
+    uint32 UserId = 4;
+    oneof SyncType{  
+      NSaleMsg NSale = 11;    
+      NSaleDtlMsg NSaleDtl = 12;  
+    }
+} 
+
+message EntityDeleteMsg{ BetTypeEnumPb BetType = 1; uint32 BetPeriod = 2; uint32 EntityId = 3; uint32 GroupId = 4; uint32 UserId = 5; } 
+message EntityStatusMsg{ bool active = 100; bool deleted = 101; bool is_synced = 102; uint32 sync_seq = 105; string data = 106;}
+ 
+message NSaleMsg{
+  uint32 Id = 1;
+  uint32 GroupId = 2;
+  uint32 UserId = 3;
+  BetTypeEnumPb BetType = 4;
+  uint32 BetPeriod = 5;
+  string MachineName = 10;
+  string CustomerName = 11;
+  string VoucherName = 12;
+  bool IsVoucherOpen = 13;
+  int64 BetDate = 21;
+  float BetRate = 22;
+  float BetCommission = 23;
+  float BetTotal = 24;
+  float WinTotalBetAmt = 25;
+  float WinPartialBetAmt = 26;
+  bool active = 200;
+  bool deleted = 201;
+  bool is_synced = 202;
+  uint32 sync_seq = 205;
+  string remarks = 206;
+}  
+message NSaleDtlMsg{
+  uint32 Id = 1; 
+  uint32 NSaleId = 2;
+  BetTypeEnumPb BetType = 3;  // this field was added on server interface as add hoc solution for data sync tracking
+  uint32 BetPeriod = 4; // this field was added on server interface as add hoc solution for data sync tracking
+  uint32 GroupId = 5;  // this field was added on server interface as add hoc solution for data sync tracking
+  uint32 UserId = 6; // this field was added on server interface as add hoc solution for data sync tracking
+  string NumberFormula = 10;
+  string AmountFormula = 11;
+  string CSVNumberList = 12;
+  float BetTotal = 21;
+  float WinTotalBetAmt = 22;
+  float WinPartialBetAmt = 23;
+  bool active = 200;
+  bool deleted = 201;
+  bool is_synced = 202;
+  uint32 sync_seq = 205;
+  string remarks = 206;
+}
+
+
+// protoc --csharp_out=proto/generated --proto_path=proto/ betting_service.proto
+// python -B -m grpc_tools.protoc -I./src/proto/ --python_out=./py_client/generated/ --grpc_python_out=./py_client/generated/ ./src/proto/NSaleService.proto

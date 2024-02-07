@@ -1,0 +1,46 @@
+{
+   "compilerOptions": { 
+      "inlineSourceMap": true,
+      "emitDecoratorMetadata": true,
+      "experimentalDecorators": true,
+      "strictPropertyInitialization": false,
+      "rootDir": "src", // is used to determine the root directory of your input files, such as ./src/app.ts
+      "target": "ESNext",
+      "module": "NodeNext", // previous working fine.
+      "moduleResolution": "NodeNext",
+      // "resolveJsonModule": true,
+      "allowJs": true,
+      "checkJs": true,
+      "useDefineForClassFields": true,
+      "outDir": "dist",
+      "esModuleInterop": true,
+      "forceConsistentCasingInFileNames": true,
+      "strict": true,
+      "noFallthroughCasesInSwitch": true,
+      "skipLibCheck": true,
+      // "baseUrl": ".", // is used to resolve non-relative module imports,
+      "paths": {
+         //"@schemas/*": ["./src/drizzle_orm/schemas/*"] // schema imports for drizzle kit to find the correct path. not usable in build dist folder
+      }
+   },
+   "ts-node": { "esm": true },
+   "include": ["src/**/*.ts", "!src/tests/**/*.ts"],
+   "exclude": [
+      "jest.config.ts",
+      "src/**/*.spec.ts",
+      "src/**/*.test.ts",
+      "py_client/**/*",
+      "sample/**/*",
+      "dist/**/*",
+      "node_modules/**/*",
+      "src/**/*.d.ts",
+      "src/**/*.js",
+      "src/**/*.proto", 
+      "src/types/**/*.ts",
+      "package.json",
+      ".eslintrc.js",
+      ".gitignore",
+      "README.md",
+      "tsconfig.json"
+   ]
+}
