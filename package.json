@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "main": "node ./dist/main.js",
-    "build": "tsc && robocopy ./src/proto/ ./dist/proto/ *.proto ",
+    "build": "tsc",
+    "proto": "tsc && robocopy ./src/proto/ ./dist/proto/ *.proto ",
     "initdb": "drizzle-kit generate:sqlite && drizzle-kit push:sqlite  "
   },
   "dependencies": {
