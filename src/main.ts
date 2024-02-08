@@ -16,7 +16,9 @@ import * as dataLoading from "./api/data_cache/data_loading.js";
 import * as sync_manager_ins from "./api/SyncSeqService.js";
 import { BetTypeEnumPb } from "./proto/generated/Dps2n3Grpc/BetTypeEnumPb.js";
 
-const host: string = "0.0.0.0:50051";
+
+const port = process.env.PORT || 10000;
+const host: string = `0.0.0.0:${port}}`;
 // const host = "https://dps24-tyt.onrender.com:50051";
 
 async function main() {
