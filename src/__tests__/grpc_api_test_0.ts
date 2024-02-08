@@ -71,7 +71,7 @@ client.waitForReady(deadline, async (error?: Error) => {
 });
 // #endregion
 
-import { authenticatedClient, upsertNewUser } from './grpc_api_test_1.js';
+import { api_teston_removeNSale, authenticatedClient, upsertNewUser } from './grpc_api_test_1.js';
 import { call_addNSale } from "./grpc_call_addNSale.js";
 
 async function onClientReady(): Promise<void> {
@@ -88,6 +88,7 @@ async function onClientReady(): Promise<void> {
             await authenticatedClient(client, "KwiEmkkFqKeARRmNXFDvb");
             break;
         case "--3":
+            await api_teston_removeNSale(client);
             break;
         case "--8": await call_addNSale(client);
             break;

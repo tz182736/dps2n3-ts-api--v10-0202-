@@ -10,6 +10,6 @@ ws.on('open', function open() {
   ws.send('something');
 });
 
-ws.on('message', function message(data) {
+ws.on('message', function message(data:string) {
   console.log('received: %s', data);
 });

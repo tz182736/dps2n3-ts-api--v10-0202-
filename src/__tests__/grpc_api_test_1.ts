@@ -9,6 +9,7 @@ import { NSaleServiceClient } from "../proto/generated/Dps2n3Grpc/NSaleService.j
 import { getBetPeriod } from "../utilities/nsale-utils.js";
 import { BetTypeEnumPb } from "../proto/generated/Dps2n3Grpc/BetTypeEnumPb.js";
 import { Metadata_tag } from "../utilities/proto-utils.js";
+import { EntityDeleteMsg } from "../proto/generated/Dps2n3Grpc/EntityDeleteMsg.js";
 const empty: Empty = <Empty>{};
 
 const metadata = new grpc_js.Metadata();
@@ -50,6 +51,18 @@ export async function upsertNewUser(client: NSaleServiceClient, username: string
             message = response?.data;
         }
         console.log(`apikey: ${message}`);
+
+    });
+}
+
+export async function api_teston_removeNSale(client: NSaleServiceClient ) {
+    const dummyDeletemsg: EntityDeleteMsg = {};
+    client.removeNSale(dummyDeletemsg, metadata, (err, response) => {
+        if (err) { console.error(err); }
+        else {
+            let rspnSeqKey = response?.SeqKey;
+            console.log(`keyseq: ${rspnSeqKey}`);
+        }
 
     });
 }
