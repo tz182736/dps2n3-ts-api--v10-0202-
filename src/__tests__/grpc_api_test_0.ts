@@ -52,7 +52,7 @@ async function initLocalDataFile(groupId: number, userId: string) {
 //#endregion
 
 // #region start client grpc connection
-const host = "https://dps24-tyt.onrender.com:50051";
+const host = "https://dps24-tyt.onrender.com:10000";
 //const host = "0.0.0.0:50051";
 const packageDefinition = protoLoader.loadSync("NumberSaleService.proto", utils.protoLoaderConfig);
 const proto = grpc_js.loadPackageDefinition(packageDefinition) as unknown as ProtoGrpcType;
@@ -61,7 +61,7 @@ const client = new proto.Dps2n3Grpc.NSaleService(host, grpc_js.credentials.creat
 const metadata = new grpc_js.Metadata();
 
 const deadline = new Date();
-deadline.setSeconds(deadline.getSeconds() + 5);
+deadline.setSeconds(deadline.getSeconds() + 300);
 client.waitForReady(deadline, async (error?: Error) => {
     if (error) {
         console.log(`Client connect error: ${error.message}`);

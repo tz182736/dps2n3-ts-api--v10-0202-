@@ -27,7 +27,7 @@ import { EntityTypeEnumPb } from "../proto/generated/Dps2n3Grpc/EntityTypeEnumPb
 import { NSaleServiceHandlers } from "../proto/generated/Dps2n3Grpc/NSaleService.js";
 import { NSaleMsg } from "../proto/generated/Dps2n3Grpc/NSaleMsg.js";
 import { NSaleDtlMsg } from "../proto/generated/Dps2n3Grpc/NSaleDtlMsg.js";
-import { EntityDeleteMsg__Output } from "../proto/generated/Dps2n3Grpc/EntityDeleteMsg.js";
+import { EntityDeleteMsg, EntityDeleteMsg__Output } from "../proto/generated/Dps2n3Grpc/EntityDeleteMsg.js";
 import { SyncSeqMsg } from "../proto/generated/Dps2n3Grpc/SyncSeqMsg.js";
 import { SyncGpMsg } from "../proto/generated/Dps2n3Grpc/SyncGpMsg.js";
 import { NSaleStreamJoinMsg } from "../proto/generated/Dps2n3Grpc/NSaleStreamJoinMsg.js";
@@ -58,7 +58,10 @@ export class NSaleServiceClass implements NSaleServiceHandlers {
     DeleteServerUser = admin_DeleteServerUser;
     UpsertServerUser = admin_updateServerUser;
 
-    RemoveNSale: grpc.handleUnaryCall<EntityDeleteMsg__Output, SyncSeqMsg>;
+    RemoveNSale = async function (call: grpc.ServerUnaryCall<EntityDeleteMsg, SyncSeqMsg>, callback: grpc.sendUnaryData<SyncSeqMsg>) {
+        callback(null, <SyncSeqMsg>{ SeqKey:"grpc call success" });
+    };
+
     RemoveNSaleDtl: grpc.handleUnaryCall<EntityDeleteMsg__Output, SyncSeqMsg>;
 
     JoinNSaleStream = async function (call: grpc.ServerWritableStream<NSaleStreamJoinMsg, NSaleStreamRspn>) {
@@ -106,8 +109,10 @@ export class NSaleServiceClass implements NSaleServiceHandlers {
                     // send missing nsale data,
                     var nSaleList = await nSaleRepository.getAllNSaleBetween(joinReqMsg.BetType as number, joinReqMsg.BetPeriod as number, item.GroupId!, item.ClientLastSyncSeq!, currentSeqValue!);
                     for (const nSaleItem of nSaleList) {
-                        const nSaleMsg = <NSaleStreamRspn>{ BetType: joinReqMsg.BetType, BetPeriod:joinReqMsg.BetPeriod,GroupId:item.GroupId,
-                            UserId: nSaleItem.userId, NSale: toNSaleMsg(nSaleItem) };
+                        const nSaleMsg = <NSaleStreamRspn>{
+                            BetType: joinReqMsg.BetType, BetPeriod: joinReqMsg.BetPeriod, GroupId: item.GroupId,
+                            UserId: nSaleItem.userId, NSale: toNSaleMsg(nSaleItem)
+                        };
                         logger.info(`send out nSale (${nSaleItem.id})`);
                         call.write(nSaleMsg);
                     }
@@ -115,8 +120,10 @@ export class NSaleServiceClass implements NSaleServiceHandlers {
                     // send missing nsaleDtl data,
                     var nSaleDtlList = await nSaleDtlRepository.getAllNSaleBetween(joinReqMsg.BetType as number, joinReqMsg.BetPeriod as number, item.GroupId!, item.ClientLastSyncSeq!, currentSeqValue!);
                     for (const nSaleDtlItem of nSaleDtlList) {
-                        const nSaleMsg = <NSaleStreamRspn>{ BetType: joinReqMsg.BetType, BetPeriod:joinReqMsg.BetPeriod,GroupId:item.GroupId,
-                            UserId: nSaleDtlItem.userId, NSaleDtl: toNSaleDtlMsg(nSaleDtlItem) };
+                        const nSaleMsg = <NSaleStreamRspn>{
+                            BetType: joinReqMsg.BetType, BetPeriod: joinReqMsg.BetPeriod, GroupId: item.GroupId,
+                            UserId: nSaleDtlItem.userId, NSaleDtl: toNSaleDtlMsg(nSaleDtlItem)
+                        };
                         logger.info(`send out nSaleDtl (${nSaleDtlItem.id}, n ${nSaleDtlItem.numberFormula})`);
                         call.write(nSaleMsg);
                     }
@@ -163,12 +170,12 @@ export class NSaleServiceClass implements NSaleServiceHandlers {
                 // upsert sync seq and resposne as msg
                 const syncSeq: SyncSeq_select = { SeqKey: seqKey, UserId: msg.UserId!, EntityType: EntityTypeEnumPb.NSale, SeqValue: newSeqValue };
                 await syncService.upsertSyncSeqValue(syncSeq);
-                
+
                 logger.trace(`!~166: seqValue:${syncSeq.SeqValue}, nSaleId: ${msg.Id}/${msg.CustomerName}`);
                 callback(null, toSyncSeqMsg(syncSeq));
             } catch (e) {
                 logger.error(`!~169: Upsert NSale error ${msg.sync_seq}, err: ${e}`);
-            } 
+            }
         }
     };
     UpsertNSaleDtl = async function (call: grpc.ServerUnaryCall<NSaleDtlMsg, NSaleDtlMsg>, callback: grpc.sendUnaryData<SyncSeqMsg>) {
@@ -186,13 +193,13 @@ export class NSaleServiceClass implements NSaleServiceHandlers {
                 await nSaleDtlRepository.upsertNSaleDtl(toNSaleDtlEntity(msg));
 
                 Broadcast_bySeqKey(seqKey, <NSaleStreamRspn>{ BetType: msg.BetType, BetPeriod: msg.BetPeriod, GroupId: msg.GroupId, UserId: msg.UserId, NSaleDtl: msg });
-                
+
                 // upsert sync seq and resposne as msg
                 const syncSeq: SyncSeq_select = { SeqKey: seqKey, UserId: msg.UserId!, EntityType: EntityTypeEnumPb.NSale, SeqValue: newSeqValue };
                 await syncService.upsertSyncSeqValue(syncSeq);
-                
+
                 logger.trace(`!~166: seqValue:${syncSeq.SeqValue}, nSaleId: ${msg.Id}/${msg.NumberFormula}`);
-                
+
                 callback(null, toSyncSeqMsg(syncSeq));
             } catch (e) {
                 logger.error(`!~208: Upsert Error ${msg.sync_seq} , err: ${e}`);
