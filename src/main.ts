@@ -18,7 +18,7 @@ import { BetTypeEnumPb } from "./proto/generated/Dps2n3Grpc/BetTypeEnumPb.js";
 
 
 const port = process.env.PORT || 10000;
-const host: string = `0.0.0.0:${port}}`;
+const host: string = `0.0.0.0:${port}`;
 // const host = "https://dps24-tyt.onrender.com:50051";
 
 async function main() {
