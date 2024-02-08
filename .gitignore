@@ -12,7 +12,7 @@ dist
 *.local
 *.stignore
 *.sqbpro
-*.sqlite
+//*.sqlite
 *.sqlite-journal
 *.code-workspace
 _ram.bat
@@ -29,4 +29,7 @@ _hdd_cron.bat
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+*.sw? 
+ 
+.tmp/_hdd copy.bat
+bundle.cjs

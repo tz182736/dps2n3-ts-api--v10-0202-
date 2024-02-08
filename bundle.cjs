@@ -2083,19 +2083,20 @@ function startOfDay(date) {
  * This function returns the timezone offset in milliseconds that takes seconds in account.
  */
 function getTimezoneOffsetInMilliseconds(date) {
+  const _date = toDate(date);
   const utcDate = new Date(
     Date.UTC(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      date.getHours(),
-      date.getMinutes(),
-      date.getSeconds(),
-      date.getMilliseconds(),
+      _date.getFullYear(),
+      _date.getMonth(),
+      _date.getDate(),
+      _date.getHours(),
+      _date.getMinutes(),
+      _date.getSeconds(),
+      _date.getMilliseconds(),
     ),
   );
-  utcDate.setUTCFullYear(date.getFullYear());
-  return date.getTime() - utcDate.getTime();
+  utcDate.setUTCFullYear(_date.getFullYear());
+  return +date - +utcDate;
 }
 
 /**
@@ -2135,14 +2136,13 @@ function differenceInCalendarDays(dateLeft, dateRight) {
   const startOfDayRight = startOfDay(dateRight);
 
   const timestampLeft =
-    startOfDayLeft.getTime() - getTimezoneOffsetInMilliseconds(startOfDayLeft);
+    +startOfDayLeft - getTimezoneOffsetInMilliseconds(startOfDayLeft);
   const timestampRight =
-    startOfDayRight.getTime() -
-    getTimezoneOffsetInMilliseconds(startOfDayRight);
+    +startOfDayRight - getTimezoneOffsetInMilliseconds(startOfDayRight);
 
-  // Round the number of days to the nearest integer
-  // because the number of milliseconds in a day is not constant
-  // (e.g. it's different in the day of the daylight saving time clock shift)
+  // Round the number of days to the nearest integer because the number of
+  // milliseconds in a day is not constant (e.g. it's different in the week of
+  // the daylight saving time clock shift).
   return Math.round((timestampLeft - timestampRight) / millisecondsInDay);
 }
 
@@ -2977,12 +2977,11 @@ function getDayOfYear(date) {
  */
 function getISOWeek(date) {
   const _date = toDate(date);
-  const diff =
-    startOfISOWeek(_date).getTime() - startOfISOWeekYear(_date).getTime();
+  const diff = +startOfISOWeek(_date) - +startOfISOWeekYear(_date);
 
-  // Round the number of days to the nearest integer
-  // because the number of milliseconds in a week is not constant
-  // (e.g. it's different in the week of the daylight saving time clock shift)
+  // Round the number of weeks to the nearest integer because the number of
+  // milliseconds in a week is not constant (e.g. it's different in the week of
+  // the daylight saving time clock shift).
   return Math.round(diff / millisecondsInWeek) + 1;
 }
 
@@ -3157,13 +3156,11 @@ function startOfWeekYear(date, options) {
 
 function getWeek(date, options) {
   const _date = toDate(date);
-  const diff =
-    startOfWeek(_date, options).getTime() -
-    startOfWeekYear(_date, options).getTime();
+  const diff = +startOfWeek(_date, options) - +startOfWeekYear(_date, options);
 
-  // Round the number of days to the nearest integer
-  // because the number of milliseconds in a week is not constant
-  // (e.g. it's different in the week of the daylight saving time clock shift)
+  // Round the number of weeks to the nearest integer because the number of
+  // milliseconds in a week is not constant (e.g. it's different in the week of
+  // the daylight saving time clock shift).
   return Math.round(diff / millisecondsInWeek) + 1;
 }
 
@@ -3257,7 +3254,7 @@ const lightFormatters = {
   S(date, token) {
     const numberOfDigits = token.length;
     const milliseconds = date.getMilliseconds();
-    const fractionalSeconds = Math.floor(
+    const fractionalSeconds = Math.trunc(
       milliseconds * Math.pow(10, numberOfDigits - 3),
     );
     return addLeadingZeros(fractionalSeconds, token.length);
@@ -3904,9 +3901,8 @@ const formatters = {
   },
 
   // Timezone (ISO-8601. If offset is 0, output is always `'Z'`)
-  X: function (date, token, _localize, options) {
-    const originalDate = options._originalDate || date;
-    const timezoneOffset = originalDate.getTimezoneOffset();
+  X: function (date, token, _localize) {
+    const timezoneOffset = date.getTimezoneOffset();
 
     if (timezoneOffset === 0) {
       return "Z";
@@ -3935,9 +3931,8 @@ const formatters = {
   },
 
   // Timezone (ISO-8601. If offset is 0, output is `'+00:00'` or equivalent)
-  x: function (date, token, _localize, options) {
-    const originalDate = options._originalDate || date;
-    const timezoneOffset = originalDate.getTimezoneOffset();
+  x: function (date, token, _localize) {
+    const timezoneOffset = date.getTimezoneOffset();
 
     switch (token) {
       // Hours and optional minutes
@@ -3962,9 +3957,8 @@ const formatters = {
   },
 
   // Timezone (GMT)
-  O: function (date, token, _localize, options) {
-    const originalDate = options._originalDate || date;
-    const timezoneOffset = originalDate.getTimezoneOffset();
+  O: function (date, token, _localize) {
+    const timezoneOffset = date.getTimezoneOffset();
 
     switch (token) {
       // Short
@@ -3980,9 +3974,8 @@ const formatters = {
   },
 
   // Timezone (specific non-location)
-  z: function (date, token, _localize, options) {
-    const originalDate = options._originalDate || date;
-    const timezoneOffset = originalDate.getTimezoneOffset();
+  z: function (date, token, _localize) {
+    const timezoneOffset = date.getTimezoneOffset();
 
     switch (token) {
       // Short
@@ -3998,16 +3991,14 @@ const formatters = {
   },
 
   // Seconds timestamp
-  t: function (date, token, _localize, options) {
-    const originalDate = options._originalDate || date;
-    const timestamp = Math.floor(originalDate.getTime() / 1000);
+  t: function (date, token, _localize) {
+    const timestamp = Math.trunc(date.getTime() / 1000);
     return addLeadingZeros(timestamp, token.length);
   },
 
   // Milliseconds timestamp
-  T: function (date, token, _localize, options) {
-    const originalDate = options._originalDate || date;
-    const timestamp = originalDate.getTime();
+  T: function (date, token, _localize) {
+    const timestamp = date.getTime();
     return addLeadingZeros(timestamp, token.length);
   },
 };
@@ -4015,7 +4006,7 @@ const formatters = {
 function formatTimezoneShort(offset, delimiter = "") {
   const sign = offset > 0 ? "-" : "+";
   const absOffset = Math.abs(offset);
-  const hours = Math.floor(absOffset / 60);
+  const hours = Math.trunc(absOffset / 60);
   const minutes = absOffset % 60;
   if (minutes === 0) {
     return sign + String(hours);
@@ -4034,7 +4025,7 @@ function formatTimezoneWithOptionalMinutes(offset, delimiter) {
 function formatTimezone(offset, delimiter = "") {
   const sign = offset > 0 ? "-" : "+";
   const absOffset = Math.abs(offset);
-  const hours = addLeadingZeros(Math.floor(absOffset / 60), 2);
+  const hours = addLeadingZeros(Math.trunc(absOffset / 60), 2);
   const minutes = addLeadingZeros(absOffset % 60, 2);
   return sign + hours + delimiter + minutes;
 }
@@ -4156,6 +4147,7 @@ const unescapedLatinCharacterRegExp = /[a-zA-Z]/;
 
 /**
  * @name format
+ * @alias formatDate
  * @category Common Helpers
  * @summary Format the date.
  *
@@ -4463,16 +4455,9 @@ function format(date, formatStr, options) {
     throw new RangeError("Invalid time value");
   }
 
-  const formatterOptions = {
-    firstWeekContainsDate: firstWeekContainsDate,
-    weekStartsOn: weekStartsOn,
-    locale: locale,
-    _originalDate: originalDate,
-  };
-
-  const result = formatStr
+  let parts = formatStr
     .match(longFormattingTokensRegExp)
-    .map(function (substring) {
+    .map((substring) => {
       const firstCharacter = substring[0];
       if (firstCharacter === "p" || firstCharacter === "P") {
         const longFormatter = longFormatters[firstCharacter];
@@ -4482,37 +4467,19 @@ function format(date, formatStr, options) {
     })
     .join("")
     .match(formattingTokensRegExp)
-    .map(function (substring) {
+    .map((substring) => {
       // Replace two single quote characters with one single quote character
       if (substring === "''") {
-        return "'";
+        return { isToken: false, value: "'" };
       }
 
       const firstCharacter = substring[0];
       if (firstCharacter === "'") {
-        return cleanEscapedString(substring);
+        return { isToken: false, value: cleanEscapedString(substring) };
       }
 
-      const formatter = formatters[firstCharacter];
-      if (formatter) {
-        if (
-          !options?.useAdditionalWeekYearTokens &&
-          isProtectedWeekYearToken(substring)
-        ) {
-          warnOrThrowProtectedError(substring, formatStr, String(date));
-        }
-        if (
-          !options?.useAdditionalDayOfYearTokens &&
-          isProtectedDayOfYearToken(substring)
-        ) {
-          warnOrThrowProtectedError(substring, formatStr, String(date));
-        }
-        return formatter(
-          originalDate,
-          substring,
-          locale.localize,
-          formatterOptions,
-        );
+      if (formatters[firstCharacter]) {
+        return { isToken: true, value: substring };
       }
 
       if (firstCharacter.match(unescapedLatinCharacterRegExp)) {
@@ -4523,11 +4490,39 @@ function format(date, formatStr, options) {
         );
       }
 
-      return substring;
+      return { isToken: false, value: substring };
+    });
+
+  // invoke localize preprocessor (only for french locales at the moment)
+  if (locale.localize.preprocessor) {
+    parts = locale.localize.preprocessor(originalDate, parts);
+  }
+
+  const formatterOptions = {
+    firstWeekContainsDate,
+    weekStartsOn,
+    locale,
+  };
+
+  return parts
+    .map((part) => {
+      if (!part.isToken) return part.value;
+
+      const token = part.value;
+
+      if (
+        (!options?.useAdditionalWeekYearTokens &&
+          isProtectedWeekYearToken(token)) ||
+        (!options?.useAdditionalDayOfYearTokens &&
+          isProtectedDayOfYearToken(token))
+      ) {
+        warnOrThrowProtectedError(token, formatStr, String(date));
+      }
+
+      const formatter = formatters[token[0]];
+      return formatter(originalDate, token, locale.localize, formatterOptions);
     })
     .join("");
-
-  return result;
 }
 
 function cleanEscapedString(input) {
@@ -4580,7 +4575,7 @@ var callCredentials = {};
 
 var metadata = {};
 
-var logging$9 = {};
+var logging$8 = {};
 
 var constants = {};
 
@@ -4648,7 +4643,7 @@ constants.DEFAULT_MAX_SEND_MESSAGE_LENGTH = -1;
 constants.DEFAULT_MAX_RECEIVE_MESSAGE_LENGTH = 4 * 1024 * 1024;
 
 var name = "@grpc/grpc-js";
-var version = "1.9.14";
+var version = "1.10.0";
 var description = "gRPC Library for Node - pure JS implementation";
 var homepage = "https://grpc.io/";
 var repository = "https://github.com/grpc/grpc-node/tree/master/packages/grpc-js";
@@ -4863,7 +4858,7 @@ var require$$12 = {
 	}
 	exports.isTracerEnabled = isTracerEnabled;
 	
-} (logging$9));
+} (logging$8));
 
 var error = {};
 
@@ -4925,9 +4920,9 @@ error.getErrorCode = getErrorCode;
  */
 Object.defineProperty(metadata, "__esModule", { value: true });
 metadata.Metadata = void 0;
-const logging_1$1 = logging$9;
+const logging_1$1 = logging$8;
 const constants_1$c = constants;
-const error_1$1 = error;
+const error_1 = error;
 const LEGAL_KEY_REGEX = /^[0-9a-z_.-]+$/;
 const LEGAL_NON_BINARY_VALUE_REGEX = /^[ -~]*$/;
 function isLegalKey(key) {
@@ -5143,7 +5138,7 @@ class Metadata {
                 }
             }
             catch (error) {
-                const message = `Failed to add metadata entry ${key}: ${values}. ${(0, error_1$1.getErrorMessage)(error)}. For more information see https://github.com/grpc/grpc-node/issues/1173`;
+                const message = `Failed to add metadata entry ${key}: ${values}. ${(0, error_1.getErrorMessage)(error)}. For more information see https://github.com/grpc/grpc-node/issues/1173`;
                 (0, logging_1$1.log)(constants_1$c.LogVerbosity.ERROR, message);
             }
         }
@@ -5331,14 +5326,14 @@ var tlsHelpers = {};
  */
 Object.defineProperty(tlsHelpers, "__esModule", { value: true });
 tlsHelpers.getDefaultRootsData = tlsHelpers.CIPHER_SUITES = void 0;
-const fs$3 = require$$0$1;
+const fs$2 = require$$0$1;
 tlsHelpers.CIPHER_SUITES = process.env.GRPC_SSL_CIPHER_SUITES;
 const DEFAULT_ROOTS_FILE_PATH = process.env.GRPC_DEFAULT_SSL_ROOTS_FILE_PATH;
 let defaultRootsData = null;
 function getDefaultRootsData() {
     if (DEFAULT_ROOTS_FILE_PATH) {
         if (defaultRootsData === null) {
-            defaultRootsData = fs$3.readFileSync(DEFAULT_ROOTS_FILE_PATH);
+            defaultRootsData = fs$2.readFileSync(DEFAULT_ROOTS_FILE_PATH);
         }
         return defaultRootsData;
     }
@@ -5438,8 +5433,8 @@ class ChannelCredentials {
 }
 channelCredentials.ChannelCredentials = ChannelCredentials;
 class InsecureChannelCredentialsImpl extends ChannelCredentials {
-    constructor(callCredentials) {
-        super(callCredentials);
+    constructor() {
+        super();
     }
     compose(callCredentials) {
         throw new Error('Cannot compose insecure credentials');
@@ -5550,7 +5545,9 @@ function requireLoadBalancer () {
 	 *
 	 */
 	Object.defineProperty(loadBalancer, "__esModule", { value: true });
-	loadBalancer.validateLoadBalancingConfig = loadBalancer.getFirstUsableConfig = loadBalancer.isLoadBalancerNameRegistered = loadBalancer.createLoadBalancer = loadBalancer.registerDefaultLoadBalancerType = loadBalancer.registerLoadBalancerType = loadBalancer.createChildChannelControlHelper = void 0;
+	loadBalancer.selectLbConfigFromList = loadBalancer.getDefaultConfig = loadBalancer.parseLoadBalancingConfig = loadBalancer.isLoadBalancerNameRegistered = loadBalancer.createLoadBalancer = loadBalancer.registerDefaultLoadBalancerType = loadBalancer.registerLoadBalancerType = loadBalancer.createChildChannelControlHelper = void 0;
+	const logging_1 = logging$8;
+	const constants_1 = constants;
 	/**
 	 * Create a child ChannelControlHelper that overrides some methods of the
 	 * parent while letting others pass through to the parent unmodified. This
@@ -5583,10 +5580,10 @@ function requireLoadBalancer () {
 	    defaultLoadBalancerType = typeName;
 	}
 	loadBalancer.registerDefaultLoadBalancerType = registerDefaultLoadBalancerType;
-	function createLoadBalancer(config, channelControlHelper) {
+	function createLoadBalancer(config, channelControlHelper, options) {
 	    const typeName = config.getLoadBalancerName();
 	    if (typeName in registeredLoadBalancerTypes) {
-	        return new registeredLoadBalancerTypes[typeName].LoadBalancer(channelControlHelper);
+	        return new registeredLoadBalancerTypes[typeName].LoadBalancer(channelControlHelper, options);
 	    }
 	    else {
 	        return null;
@@ -5597,10 +5594,40 @@ function requireLoadBalancer () {
 	    return typeName in registeredLoadBalancerTypes;
 	}
 	loadBalancer.isLoadBalancerNameRegistered = isLoadBalancerNameRegistered;
-	function getFirstUsableConfig(configs, fallbackTodefault = false) {
+	function parseLoadBalancingConfig(rawConfig) {
+	    const keys = Object.keys(rawConfig);
+	    if (keys.length !== 1) {
+	        throw new Error('Provided load balancing config has multiple conflicting entries');
+	    }
+	    const typeName = keys[0];
+	    if (typeName in registeredLoadBalancerTypes) {
+	        try {
+	            return registeredLoadBalancerTypes[typeName].LoadBalancingConfig.createFromJson(rawConfig[typeName]);
+	        }
+	        catch (e) {
+	            throw new Error(`${typeName}: ${e.message}`);
+	        }
+	    }
+	    else {
+	        throw new Error(`Unrecognized load balancing config name ${typeName}`);
+	    }
+	}
+	loadBalancer.parseLoadBalancingConfig = parseLoadBalancingConfig;
+	function getDefaultConfig() {
+	    if (!defaultLoadBalancerType) {
+	        throw new Error('No default load balancer type registered');
+	    }
+	    return new registeredLoadBalancerTypes[defaultLoadBalancerType].LoadBalancingConfig();
+	}
+	loadBalancer.getDefaultConfig = getDefaultConfig;
+	function selectLbConfigFromList(configs, fallbackTodefault = false) {
 	    for (const config of configs) {
-	        if (config.getLoadBalancerName() in registeredLoadBalancerTypes) {
-	            return config;
+	        try {
+	            return parseLoadBalancingConfig(config);
+	        }
+	        catch (e) {
+	            (0, logging_1.log)(constants_1.LogVerbosity.DEBUG, 'Config parsing failed with error', e.message);
+	            continue;
 	        }
 	    }
 	    if (fallbackTodefault) {
@@ -5615,25 +5642,7 @@ function requireLoadBalancer () {
 	        return null;
 	    }
 	}
-	loadBalancer.getFirstUsableConfig = getFirstUsableConfig;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	function validateLoadBalancingConfig(obj) {
-	    if (!(obj !== null && typeof obj === 'object')) {
-	        throw new Error('Load balancing config must be an object');
-	    }
-	    const keys = Object.keys(obj);
-	    if (keys.length !== 1) {
-	        throw new Error('Provided load balancing config has multiple conflicting entries');
-	    }
-	    const typeName = keys[0];
-	    if (typeName in registeredLoadBalancerTypes) {
-	        return registeredLoadBalancerTypes[typeName].LoadBalancingConfig.createFromJson(obj[typeName]);
-	    }
-	    else {
-	        throw new Error(`Unrecognized load balancing config name ${typeName}`);
-	    }
-	}
-	loadBalancer.validateLoadBalancingConfig = validateLoadBalancingConfig;
+	loadBalancer.selectLbConfigFromList = selectLbConfigFromList;
 	
 	return loadBalancer;
 }
@@ -5674,7 +5683,6 @@ function requireServiceConfig () {
 	/* eslint-disable @typescript-eslint/no-explicit-any */
 	const os = require$$0;
 	const constants_1 = constants;
-	const load_balancer_1 = requireLoadBalancer();
 	/**
 	 * Recognizes a number with up to 9 digits after the decimal point, followed by
 	 * an "s", representing a number of seconds.
@@ -5888,6 +5896,21 @@ function requireServiceConfig () {
 	    };
 	}
 	serviceConfig.validateRetryThrottling = validateRetryThrottling;
+	function validateLoadBalancingConfig(obj) {
+	    if (!(typeof obj === 'object' && obj !== null)) {
+	        throw new Error(`Invalid loadBalancingConfig: unexpected type ${typeof obj}`);
+	    }
+	    const keys = Object.keys(obj);
+	    if (keys.length > 1) {
+	        throw new Error(`Invalid loadBalancingConfig: unexpected multiple keys ${keys}`);
+	    }
+	    if (keys.length === 0) {
+	        throw new Error('Invalid loadBalancingConfig: load balancing policy name required');
+	    }
+	    return {
+	        [keys[0]]: obj[keys[0]]
+	    };
+	}
 	function validateServiceConfig(obj) {
 	    const result = {
 	        loadBalancingConfig: [],
@@ -5904,7 +5927,7 @@ function requireServiceConfig () {
 	    if ('loadBalancingConfig' in obj) {
 	        if (Array.isArray(obj.loadBalancingConfig)) {
 	            for (const config of obj.loadBalancingConfig) {
-	                result.loadBalancingConfig.push((0, load_balancer_1.validateLoadBalancingConfig)(config));
+	                result.loadBalancingConfig.push(validateLoadBalancingConfig(config));
 	            }
 	        }
 	        else {
@@ -6114,7 +6137,7 @@ var uriParser = {};
  *
  */
 Object.defineProperty(uriParser, "__esModule", { value: true });
-uriParser.uriToString = uriParser.splitHostPort = uriParser.parseUri = void 0;
+uriParser.uriToString = uriParser.combineHostPort = uriParser.splitHostPort = uriParser.parseUri = void 0;
 /*
  * The groups correspond to URI parts as follows:
  * 1. scheme
@@ -6194,6 +6217,21 @@ function splitHostPort(path) {
     }
 }
 uriParser.splitHostPort = splitHostPort;
+function combineHostPort(hostPort) {
+    if (hostPort.port === undefined) {
+        return hostPort.host;
+    }
+    else {
+        // Only an IPv6 host should include a colon
+        if (hostPort.host.includes(':')) {
+            return `[${hostPort.host}]:${hostPort.port}`;
+        }
+        else {
+            return `${hostPort.host}:${hostPort.port}`;
+        }
+    }
+}
+uriParser.combineHostPort = combineHostPort;
 function uriToString(uri) {
     let result = '';
     if (uri.scheme !== undefined) {
@@ -6353,11 +6391,14 @@ function requirePicker () {
 	 * indicating that the pick should be tried again with the next `Picker`. Also
 	 * reports back to the load balancer that a connection should be established
 	 * once any pick is attempted.
+	 * If the childPicker is provided, delegate to it instead of returning the
+	 * hardcoded QUEUE pick result, but still calls exitIdle.
 	 */
 	class QueuePicker {
 	    // Constructed with a load balancer. Calls exitIdle on it the first time pick is called
-	    constructor(loadBalancer) {
+	    constructor(loadBalancer, childPicker) {
 	        this.loadBalancer = loadBalancer;
+	        this.childPicker = childPicker;
 	        this.calledExitIdle = false;
 	    }
 	    pick(pickArgs) {
@@ -6367,13 +6408,18 @@ function requirePicker () {
 	            });
 	            this.calledExitIdle = true;
 	        }
-	        return {
-	            pickResultType: PickResultType.QUEUE,
-	            subchannel: null,
-	            status: null,
-	            onCallStarted: null,
-	            onCallEnded: null,
-	        };
+	        if (this.childPicker) {
+	            return this.childPicker.pick(pickArgs);
+	        }
+	        else {
+	            return {
+	                pickResultType: PickResultType.QUEUE,
+	                subchannel: null,
+	                status: null,
+	                onCallStarted: null,
+	                onCallEnded: null,
+	            };
+	        }
 	    }
 	}
 	picker.QueuePicker = QueuePicker;
@@ -6593,8 +6639,9 @@ function requireLoadBalancerChildHandler () {
 	const connectivity_state_1 = connectivityState;
 	const TYPE_NAME = 'child_load_balancer_helper';
 	class ChildLoadBalancerHandler {
-	    constructor(channelControlHelper) {
+	    constructor(channelControlHelper, options) {
 	        this.channelControlHelper = channelControlHelper;
+	        this.options = options;
 	        this.currentChild = null;
 	        this.pendingChild = null;
 	        this.latestConfig = null;
@@ -6650,17 +6697,17 @@ function requireLoadBalancerChildHandler () {
 	    }
 	    /**
 	     * Prerequisites: lbConfig !== null and lbConfig.name is registered
-	     * @param addressList
+	     * @param endpointList
 	     * @param lbConfig
 	     * @param attributes
 	     */
-	    updateAddressList(addressList, lbConfig, attributes) {
+	    updateAddressList(endpointList, lbConfig, attributes) {
 	        let childToUpdate;
 	        if (this.currentChild === null ||
 	            this.latestConfig === null ||
 	            this.configUpdateRequiresNewPolicyInstance(this.latestConfig, lbConfig)) {
 	            const newHelper = new this.ChildPolicyHelper(this);
-	            const newChild = (0, load_balancer_1.createLoadBalancer)(lbConfig, newHelper);
+	            const newChild = (0, load_balancer_1.createLoadBalancer)(lbConfig, newHelper, this.options);
 	            newHelper.setChild(newChild);
 	            if (this.currentChild === null) {
 	                this.currentChild = newChild;
@@ -6683,7 +6730,7 @@ function requireLoadBalancerChildHandler () {
 	            }
 	        }
 	        this.latestConfig = lbConfig;
-	        childToUpdate.updateAddressList(addressList, lbConfig, attributes);
+	        childToUpdate.updateAddressList(endpointList, lbConfig, attributes);
 	    }
 	    exitIdle() {
 	        if (this.currentChild) {
@@ -6750,13 +6797,13 @@ const picker_1$1 = requirePicker();
 const backoff_timeout_1 = requireBackoffTimeout();
 const constants_1$b = constants;
 const metadata_1$6 = metadata;
-const logging$8 = logging$9;
+const logging$7 = logging$8;
 const constants_2$1 = constants;
 const uri_parser_1$3 = uriParser;
 const load_balancer_child_handler_1 = requireLoadBalancerChildHandler();
-const TRACER_NAME$7 = 'resolving_load_balancer';
-function trace$2(text) {
-    logging$8.trace(constants_2$1.LogVerbosity.DEBUG, TRACER_NAME$7, text);
+const TRACER_NAME$6 = 'resolving_load_balancer';
+function trace$1(text) {
+    logging$7.trace(constants_2$1.LogVerbosity.DEBUG, TRACER_NAME$6, text);
 }
 /**
  * Name match levels in order from most to least specific. This is the order in
@@ -6882,7 +6929,7 @@ class ResolvingLoadBalancer {
                  * In that case, the backoff timer callback will call
                  * updateResolution */
                 if (this.backoffTimeout.isRunning()) {
-                    trace$2('requestReresolution delayed by backoff timer until ' + this.backoffTimeout.getEndTime().toISOString());
+                    trace$1('requestReresolution delayed by backoff timer until ' + this.backoffTimeout.getEndTime().toISOString());
                     this.continueResolving = true;
                 }
                 else {
@@ -6896,9 +6943,9 @@ class ResolvingLoadBalancer {
             },
             addChannelzChild: channelControlHelper.addChannelzChild.bind(channelControlHelper),
             removeChannelzChild: channelControlHelper.removeChannelzChild.bind(channelControlHelper),
-        });
+        }, channelOptions);
         this.innerResolver = (0, resolver_1$2.createResolver)(target, {
-            onSuccessfulResolution: (addressList, serviceConfig, serviceConfigError, configSelector, attributes) => {
+            onSuccessfulResolution: (endpointList, serviceConfig, serviceConfigError, configSelector, attributes) => {
                 var _a;
                 this.backoffTimeout.stop();
                 this.backoffTimeout.reset();
@@ -6932,7 +6979,7 @@ class ResolvingLoadBalancer {
                     this.previousServiceConfig = serviceConfig;
                 }
                 const workingConfigList = (_a = workingServiceConfig === null || workingServiceConfig === void 0 ? void 0 : workingServiceConfig.loadBalancingConfig) !== null && _a !== void 0 ? _a : [];
-                const loadBalancingConfig = (0, load_balancer_1.getFirstUsableConfig)(workingConfigList, true);
+                const loadBalancingConfig = (0, load_balancer_1.selectLbConfigFromList)(workingConfigList, true);
                 if (loadBalancingConfig === null) {
                     // There were load balancing configs but none are supported. This counts as a resolution failure
                     this.handleResolutionFailure({
@@ -6942,7 +6989,7 @@ class ResolvingLoadBalancer {
                     });
                     return;
                 }
-                this.childLoadBalancer.updateAddressList(addressList, loadBalancingConfig, attributes);
+                this.childLoadBalancer.updateAddressList(endpointList, loadBalancingConfig, attributes);
                 const finalServiceConfig = workingServiceConfig !== null && workingServiceConfig !== void 0 ? workingServiceConfig : this.defaultServiceConfig;
                 this.onSuccessfulResolution(finalServiceConfig, configSelector !== null && configSelector !== void 0 ? configSelector : getDefaultConfigSelector(finalServiceConfig));
             },
@@ -6968,19 +7015,23 @@ class ResolvingLoadBalancer {
     updateResolution() {
         this.innerResolver.updateResolution();
         if (this.currentState === connectivity_state_1$1.ConnectivityState.IDLE) {
-            this.updateState(connectivity_state_1$1.ConnectivityState.CONNECTING, new picker_1$1.QueuePicker(this));
+            /* this.latestChildPicker is initialized as new QueuePicker(this), which
+             * is an appropriate value here if the child LB policy is unset.
+             * Otherwise, we want to delegate to the child here, in case that
+             * triggers something. */
+            this.updateState(connectivity_state_1$1.ConnectivityState.CONNECTING, this.latestChildPicker);
         }
         this.backoffTimeout.runOnce();
     }
     updateState(connectivityState, picker) {
-        trace$2((0, uri_parser_1$3.uriToString)(this.target) +
+        trace$1((0, uri_parser_1$3.uriToString)(this.target) +
             ' ' +
             connectivity_state_1$1.ConnectivityState[this.currentState] +
             ' -> ' +
             connectivity_state_1$1.ConnectivityState[connectivityState]);
         // Ensure that this.exitIdle() is called by the picker
         if (connectivityState === connectivity_state_1$1.ConnectivityState.IDLE) {
-            picker = new picker_1$1.QueuePicker(this);
+            picker = new picker_1$1.QueuePicker(this, picker);
         }
         this.currentState = connectivityState;
         this.channelControlHelper.updateState(connectivityState, picker);
@@ -7003,7 +7054,7 @@ class ResolvingLoadBalancer {
         }
         this.childLoadBalancer.exitIdle();
     }
-    updateAddressList(addressList, lbConfig) {
+    updateAddressList(endpointList, lbConfig) {
         throw new Error('updateAddressList not supported on ResolvingLoadBalancer');
     }
     resetBackoff() {
@@ -7080,6 +7131,7 @@ channelOptions.recognizedOptions = {
     'grpc.service_config_disable_resolution': true,
     'grpc.client_idle_timeout_ms': true,
     'grpc-node.tls_enable_trace': true,
+    'grpc.lb.ring_hash.ring_size_cap': true,
 };
 function channelOptionsEqual(options1, options2) {
     const keys1 = Object.keys(options1).sort();
@@ -7120,7 +7172,7 @@ var subchannelAddress = {};
  *
  */
 Object.defineProperty(subchannelAddress, "__esModule", { value: true });
-subchannelAddress.stringToSubchannelAddress = subchannelAddress.subchannelAddressToString = subchannelAddress.subchannelAddressEqual = subchannelAddress.isTcpSubchannelAddress = void 0;
+subchannelAddress.EndpointMap = subchannelAddress.endpointHasAddress = subchannelAddress.endpointToString = subchannelAddress.endpointEqual = subchannelAddress.stringToSubchannelAddress = subchannelAddress.subchannelAddressToString = subchannelAddress.subchannelAddressEqual = subchannelAddress.isTcpSubchannelAddress = void 0;
 const net_1 = require$$0$3;
 function isTcpSubchannelAddress(address) {
     return 'port' in address;
@@ -7167,6 +7219,137 @@ function stringToSubchannelAddress(addressString, port) {
     }
 }
 subchannelAddress.stringToSubchannelAddress = stringToSubchannelAddress;
+function endpointEqual(endpoint1, endpoint2) {
+    if (endpoint1.addresses.length !== endpoint2.addresses.length) {
+        return false;
+    }
+    for (let i = 0; i < endpoint1.addresses.length; i++) {
+        if (!subchannelAddressEqual(endpoint1.addresses[i], endpoint2.addresses[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+subchannelAddress.endpointEqual = endpointEqual;
+function endpointToString(endpoint) {
+    return ('[' + endpoint.addresses.map(subchannelAddressToString).join(', ') + ']');
+}
+subchannelAddress.endpointToString = endpointToString;
+function endpointHasAddress(endpoint, expectedAddress) {
+    for (const address of endpoint.addresses) {
+        if (subchannelAddressEqual(address, expectedAddress)) {
+            return true;
+        }
+    }
+    return false;
+}
+subchannelAddress.endpointHasAddress = endpointHasAddress;
+function endpointEqualUnordered(endpoint1, endpoint2) {
+    if (endpoint1.addresses.length !== endpoint2.addresses.length) {
+        return false;
+    }
+    for (const address1 of endpoint1.addresses) {
+        let matchFound = false;
+        for (const address2 of endpoint2.addresses) {
+            if (subchannelAddressEqual(address1, address2)) {
+                matchFound = true;
+                break;
+            }
+        }
+        if (!matchFound) {
+            return false;
+        }
+    }
+    return true;
+}
+class EndpointMap {
+    constructor() {
+        this.map = new Set();
+    }
+    get size() {
+        return this.map.size;
+    }
+    getForSubchannelAddress(address) {
+        for (const entry of this.map) {
+            if (endpointHasAddress(entry.key, address)) {
+                return entry.value;
+            }
+        }
+        return undefined;
+    }
+    /**
+     * Delete any entries in this map with keys that are not in endpoints
+     * @param endpoints
+     */
+    deleteMissing(endpoints) {
+        const removedValues = [];
+        for (const entry of this.map) {
+            let foundEntry = false;
+            for (const endpoint of endpoints) {
+                if (endpointEqualUnordered(endpoint, entry.key)) {
+                    foundEntry = true;
+                }
+            }
+            if (!foundEntry) {
+                removedValues.push(entry.value);
+                this.map.delete(entry);
+            }
+        }
+        return removedValues;
+    }
+    get(endpoint) {
+        for (const entry of this.map) {
+            if (endpointEqualUnordered(endpoint, entry.key)) {
+                return entry.value;
+            }
+        }
+        return undefined;
+    }
+    set(endpoint, mapEntry) {
+        for (const entry of this.map) {
+            if (endpointEqualUnordered(endpoint, entry.key)) {
+                entry.value = mapEntry;
+                return;
+            }
+        }
+        this.map.add({ key: endpoint, value: mapEntry });
+    }
+    delete(endpoint) {
+        for (const entry of this.map) {
+            if (endpointEqualUnordered(endpoint, entry.key)) {
+                this.map.delete(entry);
+                return;
+            }
+        }
+    }
+    has(endpoint) {
+        for (const entry of this.map) {
+            if (endpointEqualUnordered(endpoint, entry.key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    clear() {
+        this.map.clear();
+    }
+    *keys() {
+        for (const entry of this.map) {
+            yield entry.key;
+        }
+    }
+    *values() {
+        for (const entry of this.map) {
+            yield entry.value;
+        }
+    }
+    *entries() {
+        for (const entry of this.map) {
+            yield [entry.key, entry.value];
+        }
+    }
+}
+subchannelAddress.EndpointMap = EndpointMap;
 
 var channelz = {};
 
@@ -10568,13 +10751,13 @@ function requireMinimal () {
 
 var writer = Writer$1;
 
-var util$a      = requireMinimal();
+var util$b      = requireMinimal();
 
 var BufferWriter$1; // cyclic
 
-var LongBits$1  = util$a.LongBits,
-    base64    = util$a.base64,
-    utf8$1      = util$a.utf8;
+var LongBits$1  = util$b.LongBits,
+    base64    = util$b.base64,
+    utf8$1      = util$b.utf8;
 
 /**
  * Constructs a new writer operation instance.
@@ -10689,7 +10872,7 @@ function Writer$1() {
 }
 
 var create$1 = function create() {
-    return util$a.Buffer
+    return util$b.Buffer
         ? function create_buffer_setup() {
             return (Writer$1.create = function create_buffer() {
                 return new BufferWriter$1();
@@ -10714,13 +10897,13 @@ Writer$1.create = create$1();
  * @returns {Uint8Array} Buffer
  */
 Writer$1.alloc = function alloc(size) {
-    return new util$a.Array(size);
+    return new util$b.Array(size);
 };
 
 // Use Uint8Array buffer pool in the browser, just like node does with buffers
 /* istanbul ignore else */
-if (util$a.Array !== Array)
-    Writer$1.alloc = util$a.pool(Writer$1.alloc, util$a.Array.prototype.subarray);
+if (util$b.Array !== Array)
+    Writer$1.alloc = util$b.pool(Writer$1.alloc, util$b.Array.prototype.subarray);
 
 /**
  * Pushes a new operation to the queue.
@@ -10910,7 +11093,7 @@ Writer$1.prototype.sfixed64 = Writer$1.prototype.fixed64;
  * @returns {Writer} `this`
  */
 Writer$1.prototype.float = function write_float(value) {
-    return this._push(util$a.float.writeFloatLE, 4, value);
+    return this._push(util$b.float.writeFloatLE, 4, value);
 };
 
 /**
@@ -10920,10 +11103,10 @@ Writer$1.prototype.float = function write_float(value) {
  * @returns {Writer} `this`
  */
 Writer$1.prototype.double = function write_double(value) {
-    return this._push(util$a.float.writeDoubleLE, 8, value);
+    return this._push(util$b.float.writeDoubleLE, 8, value);
 };
 
-var writeBytes = util$a.Array.prototype.set
+var writeBytes = util$b.Array.prototype.set
     ? function writeBytes_set(val, buf, pos) {
         buf.set(val, pos); // also works for plain array values
     }
@@ -10942,7 +11125,7 @@ Writer$1.prototype.bytes = function write_bytes(value) {
     var len = value.length >>> 0;
     if (!len)
         return this._push(writeByte, 1, 0);
-    if (util$a.isString(value)) {
+    if (util$b.isString(value)) {
         var buf = Writer$1.alloc(len = base64.length(value));
         base64.decode(value, buf, 0);
         value = buf;
@@ -11037,7 +11220,7 @@ var writer_buffer = BufferWriter;
 var Writer = writer;
 (BufferWriter.prototype = Object.create(Writer.prototype)).constructor = BufferWriter;
 
-var util$9 = requireMinimal();
+var util$a = requireMinimal();
 
 /**
  * Constructs a new buffer writer instance.
@@ -11056,9 +11239,9 @@ BufferWriter._configure = function () {
      * @param {number} size Buffer size
      * @returns {Buffer} Buffer
      */
-    BufferWriter.alloc = util$9._Buffer_allocUnsafe;
+    BufferWriter.alloc = util$a._Buffer_allocUnsafe;
 
-    BufferWriter.writeBytesBuffer = util$9.Buffer && util$9.Buffer.prototype instanceof Uint8Array && util$9.Buffer.prototype.set.name === "set"
+    BufferWriter.writeBytesBuffer = util$a.Buffer && util$a.Buffer.prototype instanceof Uint8Array && util$a.Buffer.prototype.set.name === "set"
         ? function writeBytesBuffer_set(val, buf, pos) {
           buf.set(val, pos); // faster than copy (requires node >= 4 where Buffers extend Uint8Array and set is properly inherited)
           // also works for plain array values
@@ -11077,8 +11260,8 @@ BufferWriter._configure = function () {
  * @override
  */
 BufferWriter.prototype.bytes = function write_bytes_buffer(value) {
-    if (util$9.isString(value))
-        value = util$9._Buffer_from(value, "base64");
+    if (util$a.isString(value))
+        value = util$a._Buffer_from(value, "base64");
     var len = value.length >>> 0;
     this.uint32(len);
     if (len)
@@ -11088,7 +11271,7 @@ BufferWriter.prototype.bytes = function write_bytes_buffer(value) {
 
 function writeStringBuffer(val, buf, pos) {
     if (val.length < 40) // plain js is faster for short strings (probably due to redundant assertions)
-        util$9.utf8.write(val, buf, pos);
+        util$a.utf8.write(val, buf, pos);
     else if (buf.utf8Write)
         buf.utf8Write(val, pos);
     else
@@ -11099,7 +11282,7 @@ function writeStringBuffer(val, buf, pos) {
  * @override
  */
 BufferWriter.prototype.string = function write_string_buffer(value) {
-    var len = util$9.Buffer.byteLength(value);
+    var len = util$a.Buffer.byteLength(value);
     this.uint32(len);
     if (len)
         this._push(writeStringBuffer, len, value);
@@ -11118,12 +11301,12 @@ BufferWriter._configure();
 
 var reader = Reader$1;
 
-var util$8      = requireMinimal();
+var util$9      = requireMinimal();
 
 var BufferReader$1; // cyclic
 
-var LongBits  = util$8.LongBits,
-    utf8      = util$8.utf8;
+var LongBits  = util$9.LongBits,
+    utf8      = util$9.utf8;
 
 /* istanbul ignore next */
 function indexOutOfRange(reader, writeLength) {
@@ -11171,10 +11354,10 @@ var create_array = typeof Uint8Array !== "undefined"
     };
 
 var create = function create() {
-    return util$8.Buffer
+    return util$9.Buffer
         ? function create_buffer_setup(buffer) {
             return (Reader$1.create = function create_buffer(buffer) {
-                return util$8.Buffer.isBuffer(buffer)
+                return util$9.Buffer.isBuffer(buffer)
                     ? new BufferReader$1(buffer)
                     /* istanbul ignore next */
                     : create_array(buffer);
@@ -11193,7 +11376,7 @@ var create = function create() {
  */
 Reader$1.create = create();
 
-Reader$1.prototype._slice = util$8.Array.prototype.subarray || /* istanbul ignore next */ util$8.Array.prototype.slice;
+Reader$1.prototype._slice = util$9.Array.prototype.subarray || /* istanbul ignore next */ util$9.Array.prototype.slice;
 
 /**
  * Reads a varint as an unsigned 32 bit value.
@@ -11392,7 +11575,7 @@ Reader$1.prototype.float = function read_float() {
     if (this.pos + 4 > this.len)
         throw indexOutOfRange(this, 4);
 
-    var value = util$8.float.readFloatLE(this.buf, this.pos);
+    var value = util$9.float.readFloatLE(this.buf, this.pos);
     this.pos += 4;
     return value;
 };
@@ -11408,7 +11591,7 @@ Reader$1.prototype.double = function read_double() {
     if (this.pos + 8 > this.len)
         throw indexOutOfRange(this, 4);
 
-    var value = util$8.float.readDoubleLE(this.buf, this.pos);
+    var value = util$9.float.readDoubleLE(this.buf, this.pos);
     this.pos += 8;
     return value;
 };
@@ -11431,7 +11614,7 @@ Reader$1.prototype.bytes = function read_bytes() {
         return this.buf.slice(start, end);
 
     if (start === end) { // fix for IE 10/Win8 and others' subarray returning array of size 1
-        var nativeBuffer = util$8.Buffer;
+        var nativeBuffer = util$9.Buffer;
         return nativeBuffer
             ? nativeBuffer.alloc(0)
             : new this.buf.constructor(0);
@@ -11506,8 +11689,8 @@ Reader$1._configure = function(BufferReader_) {
     Reader$1.create = create();
     BufferReader$1._configure();
 
-    var fn = util$8.Long ? "toLong" : /* istanbul ignore next */ "toNumber";
-    util$8.merge(Reader$1.prototype, {
+    var fn = util$9.Long ? "toLong" : /* istanbul ignore next */ "toNumber";
+    util$9.merge(Reader$1.prototype, {
 
         int64: function read_int64() {
             return readLongVarint.call(this)[fn](false);
@@ -11538,7 +11721,7 @@ var reader_buffer = BufferReader;
 var Reader = reader;
 (BufferReader.prototype = Object.create(Reader.prototype)).constructor = BufferReader;
 
-var util$7 = requireMinimal();
+var util$8 = requireMinimal();
 
 /**
  * Constructs a new buffer reader instance.
@@ -11559,8 +11742,8 @@ function BufferReader(buffer) {
 
 BufferReader._configure = function () {
     /* istanbul ignore else */
-    if (util$7.Buffer)
-        BufferReader.prototype._slice = util$7.Buffer.prototype.slice;
+    if (util$8.Buffer)
+        BufferReader.prototype._slice = util$8.Buffer.prototype.slice;
 };
 
 
@@ -11587,10 +11770,10 @@ var rpc = {};
 
 var service$1 = Service$1;
 
-var util$6 = requireMinimal();
+var util$7 = requireMinimal();
 
 // Extends EventEmitter
-(Service$1.prototype = Object.create(util$6.EventEmitter.prototype)).constructor = Service$1;
+(Service$1.prototype = Object.create(util$7.EventEmitter.prototype)).constructor = Service$1;
 
 /**
  * A service method callback as used by {@link rpc.ServiceMethod|ServiceMethod}.
@@ -11630,7 +11813,7 @@ function Service$1(rpcImpl, requestDelimited, responseDelimited) {
     if (typeof rpcImpl !== "function")
         throw TypeError("rpcImpl must be a function");
 
-    util$6.EventEmitter.call(this);
+    util$7.EventEmitter.call(this);
 
     /**
      * RPC implementation. Becomes `null` once the service is ended.
@@ -11669,7 +11852,7 @@ Service$1.prototype.rpcCall = function rpcCall(method, requestCtor, responseCtor
 
     var self = this;
     if (!callback)
-        return util$6.asPromise(rpcCall, self, method, requestCtor, responseCtor, request);
+        return util$7.asPromise(rpcCall, self, method, requestCtor, responseCtor, request);
 
     if (!self.rpcImpl) {
         setTimeout(function() { callback(Error("already ended")); }, 0);
@@ -11805,290 +11988,313 @@ var roots = {};
 	configure(); 
 } (indexMinimal));
 
-var util$5 = {exports: {}};
+var util$6 = {exports: {}};
 
-var codegen_1 = codegen;
+var codegen_1;
+var hasRequiredCodegen;
 
-/**
- * Begins generating a function.
- * @memberof util
- * @param {string[]} functionParams Function parameter names
- * @param {string} [functionName] Function name if not anonymous
- * @returns {Codegen} Appender that appends code to the function's body
- */
-function codegen(functionParams, functionName) {
+function requireCodegen () {
+	if (hasRequiredCodegen) return codegen_1;
+	hasRequiredCodegen = 1;
+	codegen_1 = codegen;
 
-    /* istanbul ignore if */
-    if (typeof functionParams === "string") {
-        functionName = functionParams;
-        functionParams = undefined;
-    }
+	/**
+	 * Begins generating a function.
+	 * @memberof util
+	 * @param {string[]} functionParams Function parameter names
+	 * @param {string} [functionName] Function name if not anonymous
+	 * @returns {Codegen} Appender that appends code to the function's body
+	 */
+	function codegen(functionParams, functionName) {
 
-    var body = [];
+	    /* istanbul ignore if */
+	    if (typeof functionParams === "string") {
+	        functionName = functionParams;
+	        functionParams = undefined;
+	    }
 
-    /**
-     * Appends code to the function's body or finishes generation.
-     * @typedef Codegen
-     * @type {function}
-     * @param {string|Object.<string,*>} [formatStringOrScope] Format string or, to finish the function, an object of additional scope variables, if any
-     * @param {...*} [formatParams] Format parameters
-     * @returns {Codegen|Function} Itself or the generated function if finished
-     * @throws {Error} If format parameter counts do not match
-     */
+	    var body = [];
 
-    function Codegen(formatStringOrScope) {
-        // note that explicit array handling below makes this ~50% faster
+	    /**
+	     * Appends code to the function's body or finishes generation.
+	     * @typedef Codegen
+	     * @type {function}
+	     * @param {string|Object.<string,*>} [formatStringOrScope] Format string or, to finish the function, an object of additional scope variables, if any
+	     * @param {...*} [formatParams] Format parameters
+	     * @returns {Codegen|Function} Itself or the generated function if finished
+	     * @throws {Error} If format parameter counts do not match
+	     */
 
-        // finish the function
-        if (typeof formatStringOrScope !== "string") {
-            var source = toString();
-            if (codegen.verbose)
-                console.log("codegen: " + source); // eslint-disable-line no-console
-            source = "return " + source;
-            if (formatStringOrScope) {
-                var scopeKeys   = Object.keys(formatStringOrScope),
-                    scopeParams = new Array(scopeKeys.length + 1),
-                    scopeValues = new Array(scopeKeys.length),
-                    scopeOffset = 0;
-                while (scopeOffset < scopeKeys.length) {
-                    scopeParams[scopeOffset] = scopeKeys[scopeOffset];
-                    scopeValues[scopeOffset] = formatStringOrScope[scopeKeys[scopeOffset++]];
-                }
-                scopeParams[scopeOffset] = source;
-                return Function.apply(null, scopeParams).apply(null, scopeValues); // eslint-disable-line no-new-func
-            }
-            return Function(source)(); // eslint-disable-line no-new-func
-        }
+	    function Codegen(formatStringOrScope) {
+	        // note that explicit array handling below makes this ~50% faster
 
-        // otherwise append to body
-        var formatParams = new Array(arguments.length - 1),
-            formatOffset = 0;
-        while (formatOffset < formatParams.length)
-            formatParams[formatOffset] = arguments[++formatOffset];
-        formatOffset = 0;
-        formatStringOrScope = formatStringOrScope.replace(/%([%dfijs])/g, function replace($0, $1) {
-            var value = formatParams[formatOffset++];
-            switch ($1) {
-                case "d": case "f": return String(Number(value));
-                case "i": return String(Math.floor(value));
-                case "j": return JSON.stringify(value);
-                case "s": return String(value);
-            }
-            return "%";
-        });
-        if (formatOffset !== formatParams.length)
-            throw Error("parameter count mismatch");
-        body.push(formatStringOrScope);
-        return Codegen;
-    }
+	        // finish the function
+	        if (typeof formatStringOrScope !== "string") {
+	            var source = toString();
+	            if (codegen.verbose)
+	                console.log("codegen: " + source); // eslint-disable-line no-console
+	            source = "return " + source;
+	            if (formatStringOrScope) {
+	                var scopeKeys   = Object.keys(formatStringOrScope),
+	                    scopeParams = new Array(scopeKeys.length + 1),
+	                    scopeValues = new Array(scopeKeys.length),
+	                    scopeOffset = 0;
+	                while (scopeOffset < scopeKeys.length) {
+	                    scopeParams[scopeOffset] = scopeKeys[scopeOffset];
+	                    scopeValues[scopeOffset] = formatStringOrScope[scopeKeys[scopeOffset++]];
+	                }
+	                scopeParams[scopeOffset] = source;
+	                return Function.apply(null, scopeParams).apply(null, scopeValues); // eslint-disable-line no-new-func
+	            }
+	            return Function(source)(); // eslint-disable-line no-new-func
+	        }
 
-    function toString(functionNameOverride) {
-        return "function " + (functionNameOverride || functionName || "") + "(" + (functionParams && functionParams.join(",") || "") + "){\n  " + body.join("\n  ") + "\n}";
-    }
+	        // otherwise append to body
+	        var formatParams = new Array(arguments.length - 1),
+	            formatOffset = 0;
+	        while (formatOffset < formatParams.length)
+	            formatParams[formatOffset] = arguments[++formatOffset];
+	        formatOffset = 0;
+	        formatStringOrScope = formatStringOrScope.replace(/%([%dfijs])/g, function replace($0, $1) {
+	            var value = formatParams[formatOffset++];
+	            switch ($1) {
+	                case "d": case "f": return String(Number(value));
+	                case "i": return String(Math.floor(value));
+	                case "j": return JSON.stringify(value);
+	                case "s": return String(value);
+	            }
+	            return "%";
+	        });
+	        if (formatOffset !== formatParams.length)
+	            throw Error("parameter count mismatch");
+	        body.push(formatStringOrScope);
+	        return Codegen;
+	    }
 
-    Codegen.toString = toString;
-    return Codegen;
+	    function toString(functionNameOverride) {
+	        return "function " + (functionNameOverride || functionName || "") + "(" + (functionParams && functionParams.join(",") || "") + "){\n  " + body.join("\n  ") + "\n}";
+	    }
+
+	    Codegen.toString = toString;
+	    return Codegen;
+	}
+
+	/**
+	 * Begins generating a function.
+	 * @memberof util
+	 * @function codegen
+	 * @param {string} [functionName] Function name if not anonymous
+	 * @returns {Codegen} Appender that appends code to the function's body
+	 * @variation 2
+	 */
+
+	/**
+	 * When set to `true`, codegen will log generated code to console. Useful for debugging.
+	 * @name util.codegen.verbose
+	 * @type {boolean}
+	 */
+	codegen.verbose = false;
+	return codegen_1;
 }
 
-/**
- * Begins generating a function.
- * @memberof util
- * @function codegen
- * @param {string} [functionName] Function name if not anonymous
- * @returns {Codegen} Appender that appends code to the function's body
- * @variation 2
- */
+var fetch_1;
+var hasRequiredFetch;
 
-/**
- * When set to `true`, codegen will log generated code to console. Useful for debugging.
- * @name util.codegen.verbose
- * @type {boolean}
- */
-codegen.verbose = false;
+function requireFetch () {
+	if (hasRequiredFetch) return fetch_1;
+	hasRequiredFetch = 1;
+	fetch_1 = fetch;
 
-var fetch_1 = fetch;
+	var asPromise = requireAspromise(),
+	    inquire   = requireInquire();
 
-var asPromise = requireAspromise(),
-    inquire   = requireInquire();
+	var fs = inquire("fs");
 
-var fs$2 = inquire("fs");
+	/**
+	 * Node-style callback as used by {@link util.fetch}.
+	 * @typedef FetchCallback
+	 * @type {function}
+	 * @param {?Error} error Error, if any, otherwise `null`
+	 * @param {string} [contents] File contents, if there hasn't been an error
+	 * @returns {undefined}
+	 */
 
-/**
- * Node-style callback as used by {@link util.fetch}.
- * @typedef FetchCallback
- * @type {function}
- * @param {?Error} error Error, if any, otherwise `null`
- * @param {string} [contents] File contents, if there hasn't been an error
- * @returns {undefined}
- */
+	/**
+	 * Options as used by {@link util.fetch}.
+	 * @typedef FetchOptions
+	 * @type {Object}
+	 * @property {boolean} [binary=false] Whether expecting a binary response
+	 * @property {boolean} [xhr=false] If `true`, forces the use of XMLHttpRequest
+	 */
 
-/**
- * Options as used by {@link util.fetch}.
- * @typedef FetchOptions
- * @type {Object}
- * @property {boolean} [binary=false] Whether expecting a binary response
- * @property {boolean} [xhr=false] If `true`, forces the use of XMLHttpRequest
- */
+	/**
+	 * Fetches the contents of a file.
+	 * @memberof util
+	 * @param {string} filename File path or url
+	 * @param {FetchOptions} options Fetch options
+	 * @param {FetchCallback} callback Callback function
+	 * @returns {undefined}
+	 */
+	function fetch(filename, options, callback) {
+	    if (typeof options === "function") {
+	        callback = options;
+	        options = {};
+	    } else if (!options)
+	        options = {};
 
-/**
- * Fetches the contents of a file.
- * @memberof util
- * @param {string} filename File path or url
- * @param {FetchOptions} options Fetch options
- * @param {FetchCallback} callback Callback function
- * @returns {undefined}
- */
-function fetch(filename, options, callback) {
-    if (typeof options === "function") {
-        callback = options;
-        options = {};
-    } else if (!options)
-        options = {};
+	    if (!callback)
+	        return asPromise(fetch, this, filename, options); // eslint-disable-line no-invalid-this
 
-    if (!callback)
-        return asPromise(fetch, this, filename, options); // eslint-disable-line no-invalid-this
+	    // if a node-like filesystem is present, try it first but fall back to XHR if nothing is found.
+	    if (!options.xhr && fs && fs.readFile)
+	        return fs.readFile(filename, function fetchReadFileCallback(err, contents) {
+	            return err && typeof XMLHttpRequest !== "undefined"
+	                ? fetch.xhr(filename, options, callback)
+	                : err
+	                ? callback(err)
+	                : callback(null, options.binary ? contents : contents.toString("utf8"));
+	        });
 
-    // if a node-like filesystem is present, try it first but fall back to XHR if nothing is found.
-    if (!options.xhr && fs$2 && fs$2.readFile)
-        return fs$2.readFile(filename, function fetchReadFileCallback(err, contents) {
-            return err && typeof XMLHttpRequest !== "undefined"
-                ? fetch.xhr(filename, options, callback)
-                : err
-                ? callback(err)
-                : callback(null, options.binary ? contents : contents.toString("utf8"));
-        });
+	    // use the XHR version otherwise.
+	    return fetch.xhr(filename, options, callback);
+	}
 
-    // use the XHR version otherwise.
-    return fetch.xhr(filename, options, callback);
+	/**
+	 * Fetches the contents of a file.
+	 * @name util.fetch
+	 * @function
+	 * @param {string} path File path or url
+	 * @param {FetchCallback} callback Callback function
+	 * @returns {undefined}
+	 * @variation 2
+	 */
+
+	/**
+	 * Fetches the contents of a file.
+	 * @name util.fetch
+	 * @function
+	 * @param {string} path File path or url
+	 * @param {FetchOptions} [options] Fetch options
+	 * @returns {Promise<string|Uint8Array>} Promise
+	 * @variation 3
+	 */
+
+	/**/
+	fetch.xhr = function fetch_xhr(filename, options, callback) {
+	    var xhr = new XMLHttpRequest();
+	    xhr.onreadystatechange /* works everywhere */ = function fetchOnReadyStateChange() {
+
+	        if (xhr.readyState !== 4)
+	            return undefined;
+
+	        // local cors security errors return status 0 / empty string, too. afaik this cannot be
+	        // reliably distinguished from an actually empty file for security reasons. feel free
+	        // to send a pull request if you are aware of a solution.
+	        if (xhr.status !== 0 && xhr.status !== 200)
+	            return callback(Error("status " + xhr.status));
+
+	        // if binary data is expected, make sure that some sort of array is returned, even if
+	        // ArrayBuffers are not supported. the binary string fallback, however, is unsafe.
+	        if (options.binary) {
+	            var buffer = xhr.response;
+	            if (!buffer) {
+	                buffer = [];
+	                for (var i = 0; i < xhr.responseText.length; ++i)
+	                    buffer.push(xhr.responseText.charCodeAt(i) & 255);
+	            }
+	            return callback(null, typeof Uint8Array !== "undefined" ? new Uint8Array(buffer) : buffer);
+	        }
+	        return callback(null, xhr.responseText);
+	    };
+
+	    if (options.binary) {
+	        // ref: https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/Sending_and_Receiving_Binary_Data#Receiving_binary_data_in_older_browsers
+	        if ("overrideMimeType" in xhr)
+	            xhr.overrideMimeType("text/plain; charset=x-user-defined");
+	        xhr.responseType = "arraybuffer";
+	    }
+
+	    xhr.open("GET", filename);
+	    xhr.send();
+	};
+	return fetch_1;
 }
-
-/**
- * Fetches the contents of a file.
- * @name util.fetch
- * @function
- * @param {string} path File path or url
- * @param {FetchCallback} callback Callback function
- * @returns {undefined}
- * @variation 2
- */
-
-/**
- * Fetches the contents of a file.
- * @name util.fetch
- * @function
- * @param {string} path File path or url
- * @param {FetchOptions} [options] Fetch options
- * @returns {Promise<string|Uint8Array>} Promise
- * @variation 3
- */
-
-/**/
-fetch.xhr = function fetch_xhr(filename, options, callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange /* works everywhere */ = function fetchOnReadyStateChange() {
-
-        if (xhr.readyState !== 4)
-            return undefined;
-
-        // local cors security errors return status 0 / empty string, too. afaik this cannot be
-        // reliably distinguished from an actually empty file for security reasons. feel free
-        // to send a pull request if you are aware of a solution.
-        if (xhr.status !== 0 && xhr.status !== 200)
-            return callback(Error("status " + xhr.status));
-
-        // if binary data is expected, make sure that some sort of array is returned, even if
-        // ArrayBuffers are not supported. the binary string fallback, however, is unsafe.
-        if (options.binary) {
-            var buffer = xhr.response;
-            if (!buffer) {
-                buffer = [];
-                for (var i = 0; i < xhr.responseText.length; ++i)
-                    buffer.push(xhr.responseText.charCodeAt(i) & 255);
-            }
-            return callback(null, typeof Uint8Array !== "undefined" ? new Uint8Array(buffer) : buffer);
-        }
-        return callback(null, xhr.responseText);
-    };
-
-    if (options.binary) {
-        // ref: https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/Sending_and_Receiving_Binary_Data#Receiving_binary_data_in_older_browsers
-        if ("overrideMimeType" in xhr)
-            xhr.overrideMimeType("text/plain; charset=x-user-defined");
-        xhr.responseType = "arraybuffer";
-    }
-
-    xhr.open("GET", filename);
-    xhr.send();
-};
 
 var path$2 = {};
 
-(function (exports) {
+var hasRequiredPath;
 
-	/**
-	 * A minimal path module to resolve Unix, Windows and URL paths alike.
-	 * @memberof util
-	 * @namespace
-	 */
-	var path = exports;
+function requirePath () {
+	if (hasRequiredPath) return path$2;
+	hasRequiredPath = 1;
+	(function (exports) {
 
-	var isAbsolute =
-	/**
-	 * Tests if the specified path is absolute.
-	 * @param {string} path Path to test
-	 * @returns {boolean} `true` if path is absolute
-	 */
-	path.isAbsolute = function isAbsolute(path) {
-	    return /^(?:\/|\w+:)/.test(path);
-	};
+		/**
+		 * A minimal path module to resolve Unix, Windows and URL paths alike.
+		 * @memberof util
+		 * @namespace
+		 */
+		var path = exports;
 
-	var normalize =
-	/**
-	 * Normalizes the specified path.
-	 * @param {string} path Path to normalize
-	 * @returns {string} Normalized path
-	 */
-	path.normalize = function normalize(path) {
-	    path = path.replace(/\\/g, "/")
-	               .replace(/\/{2,}/g, "/");
-	    var parts    = path.split("/"),
-	        absolute = isAbsolute(path),
-	        prefix   = "";
-	    if (absolute)
-	        prefix = parts.shift() + "/";
-	    for (var i = 0; i < parts.length;) {
-	        if (parts[i] === "..") {
-	            if (i > 0 && parts[i - 1] !== "..")
-	                parts.splice(--i, 2);
-	            else if (absolute)
-	                parts.splice(i, 1);
-	            else
-	                ++i;
-	        } else if (parts[i] === ".")
-	            parts.splice(i, 1);
-	        else
-	            ++i;
-	    }
-	    return prefix + parts.join("/");
-	};
+		var isAbsolute =
+		/**
+		 * Tests if the specified path is absolute.
+		 * @param {string} path Path to test
+		 * @returns {boolean} `true` if path is absolute
+		 */
+		path.isAbsolute = function isAbsolute(path) {
+		    return /^(?:\/|\w+:)/.test(path);
+		};
 
-	/**
-	 * Resolves the specified include path against the specified origin path.
-	 * @param {string} originPath Path to the origin file
-	 * @param {string} includePath Include path relative to origin path
-	 * @param {boolean} [alreadyNormalized=false] `true` if both paths are already known to be normalized
-	 * @returns {string} Path to the include file
-	 */
-	path.resolve = function resolve(originPath, includePath, alreadyNormalized) {
-	    if (!alreadyNormalized)
-	        includePath = normalize(includePath);
-	    if (isAbsolute(includePath))
-	        return includePath;
-	    if (!alreadyNormalized)
-	        originPath = normalize(originPath);
-	    return (originPath = originPath.replace(/(?:\/|^)[^/]+$/, "")).length ? normalize(originPath + "/" + includePath) : includePath;
-	}; 
-} (path$2));
+		var normalize =
+		/**
+		 * Normalizes the specified path.
+		 * @param {string} path Path to normalize
+		 * @returns {string} Normalized path
+		 */
+		path.normalize = function normalize(path) {
+		    path = path.replace(/\\/g, "/")
+		               .replace(/\/{2,}/g, "/");
+		    var parts    = path.split("/"),
+		        absolute = isAbsolute(path),
+		        prefix   = "";
+		    if (absolute)
+		        prefix = parts.shift() + "/";
+		    for (var i = 0; i < parts.length;) {
+		        if (parts[i] === "..") {
+		            if (i > 0 && parts[i - 1] !== "..")
+		                parts.splice(--i, 2);
+		            else if (absolute)
+		                parts.splice(i, 1);
+		            else
+		                ++i;
+		        } else if (parts[i] === ".")
+		            parts.splice(i, 1);
+		        else
+		            ++i;
+		    }
+		    return prefix + parts.join("/");
+		};
+
+		/**
+		 * Resolves the specified include path against the specified origin path.
+		 * @param {string} originPath Path to the origin file
+		 * @param {string} includePath Include path relative to origin path
+		 * @param {boolean} [alreadyNormalized=false] `true` if both paths are already known to be normalized
+		 * @returns {string} Path to the include file
+		 */
+		path.resolve = function resolve(originPath, includePath, alreadyNormalized) {
+		    if (!alreadyNormalized)
+		        includePath = normalize(includePath);
+		    if (isAbsolute(includePath))
+		        return includePath;
+		    if (!alreadyNormalized)
+		        originPath = normalize(originPath);
+		    return (originPath = originPath.replace(/(?:\/|^)[^/]+$/, "")).length ? normalize(originPath + "/" + includePath) : includePath;
+		}; 
+	} (path$2));
+	return path$2;
+}
 
 var types$1 = {};
 
@@ -13813,7 +14019,7 @@ function requireService () {
 
 var message = Message;
 
-var util$4 = requireMinimal();
+var util$5 = requireMinimal();
 
 /**
  * Constructs a new message instance.
@@ -13945,7 +14151,7 @@ Message.toObject = function toObject(message, options) {
  * @returns {Object.<string,*>} JSON object
  */
 Message.prototype.toJSON = function toJSON() {
-    return this.$type.toObject(this, util$4.toJSONOptions);
+    return this.$type.toObject(this, util$5.toJSONOptions);
 };
 
 var decoder_1;
@@ -15664,23 +15870,23 @@ function requireRoot () {
 var hasRequiredUtil;
 
 function requireUtil () {
-	if (hasRequiredUtil) return util$5.exports;
+	if (hasRequiredUtil) return util$6.exports;
 	hasRequiredUtil = 1;
 
 	/**
 	 * Various utility functions.
 	 * @namespace
 	 */
-	var util = util$5.exports = requireMinimal();
+	var util = util$6.exports = requireMinimal();
 
 	var roots$1 = roots;
 
 	var Type, // cyclic
 	    Enum;
 
-	util.codegen = codegen_1;
-	util.fetch   = fetch_1;
-	util.path    = path$2;
+	util.codegen = requireCodegen();
+	util.fetch   = requireFetch();
+	util.path    = requirePath();
 
 	/**
 	 * Node's fs module if available.
@@ -15877,7 +16083,7 @@ function requireUtil () {
 	        return roots$1["decorated"] || (roots$1["decorated"] = new (requireRoot())());
 	    }
 	});
-	return util$5.exports;
+	return util$6.exports;
 }
 
 var object;
@@ -16982,7 +17188,7 @@ var tokenize  = tokenize_1,
     Service   = requireService(),
     Method    = requireMethod(),
     types     = requireTypes(),
-    util$3      = requireUtil();
+    util$4      = requireUtil();
 
 var base10Re    = /^[1-9][0-9]*$/,
     base10NegRe = /^-?[1-9][0-9]*$/,
@@ -17054,7 +17260,7 @@ function parse(source, root, options) {
 
     var ptr = root;
 
-    var applyCase = options.keepCase ? function(name) { return name; } : util$3.camelCase;
+    var applyCase = options.keepCase ? function(name) { return name; } : util$4.camelCase;
 
     /* istanbul ignore next */
     function illegal(token, name, insideTryCatch) {
@@ -17390,9 +17596,9 @@ function parse(source, root, options) {
         if (!nameRe.test(name))
             throw illegal(name, "name");
 
-        var fieldName = util$3.lcFirst(name);
+        var fieldName = util$4.lcFirst(name);
         if (name === fieldName)
-            name = util$3.ucFirst(name);
+            name = util$4.ucFirst(name);
         skip("=");
         var id = parseId(next());
         var type = new Type(name);
@@ -20041,7 +20247,7 @@ var require$$4 = {
 
 var descriptorExports = descriptor$2.exports;
 
-var util$2 = {};
+var util$3 = {};
 
 var nested$2 = {
 	google: {
@@ -20406,8 +20612,8 @@ var require$$6 = {
  * limitations under the License.
  *
  */
-Object.defineProperty(util$2, "__esModule", { value: true });
-util$2.addCommonProtos = util$2.loadProtosWithOptionsSync = util$2.loadProtosWithOptions = void 0;
+Object.defineProperty(util$3, "__esModule", { value: true });
+util$3.addCommonProtos = util$3.loadProtosWithOptionsSync = util$3.loadProtosWithOptions = void 0;
 const fs$1 = require$$0$1;
 const path$1 = require$$1;
 const Protobuf$1 = protobufjs;
@@ -20444,7 +20650,7 @@ async function loadProtosWithOptions(filename, options) {
     loadedRoot.resolveAll();
     return loadedRoot;
 }
-util$2.loadProtosWithOptions = loadProtosWithOptions;
+util$3.loadProtosWithOptions = loadProtosWithOptions;
 function loadProtosWithOptionsSync(filename, options) {
     const root = new Protobuf$1.Root();
     options = options || {};
@@ -20458,7 +20664,7 @@ function loadProtosWithOptionsSync(filename, options) {
     loadedRoot.resolveAll();
     return loadedRoot;
 }
-util$2.loadProtosWithOptionsSync = loadProtosWithOptionsSync;
+util$3.loadProtosWithOptionsSync = loadProtosWithOptionsSync;
 /**
  * Load Google's well-known proto files that aren't exposed by Protobuf.js.
  */
@@ -20475,7 +20681,7 @@ function addCommonProtos() {
     Protobuf$1.common('source_context', sourceContextDescriptor.nested.google.nested.protobuf.nested);
     Protobuf$1.common('type', typeDescriptor.nested.google.nested.protobuf.nested);
 }
-util$2.addCommonProtos = addCommonProtos;
+util$3.addCommonProtos = addCommonProtos;
 
 var umd = {exports: {}};
 
@@ -21936,7 +22142,7 @@ src$1.loadFileDescriptorSetFromObject = src$1.loadFileDescriptorSetFromBuffer = 
 const camelCase = lodash_camelcase;
 const Protobuf = protobufjs;
 const descriptor$1 = descriptorExports;
-const util_1$1 = util$2;
+const util_1 = util$3;
 const Long = umdExports;
 src$1.Long = Long;
 function isAnyExtension(obj) {
@@ -22103,13 +22309,13 @@ function createPackageDefinitionFromDescriptorSet(decodedDescriptorSet, options)
  * @param options.includeDirs Paths to search for imported `.proto` files.
  */
 function load(filename, options) {
-    return (0, util_1$1.loadProtosWithOptions)(filename, options).then(loadedRoot => {
+    return (0, util_1.loadProtosWithOptions)(filename, options).then(loadedRoot => {
         return createPackageDefinition(loadedRoot, options);
     });
 }
 src$1.load = load;
 function loadSync(filename, options) {
-    const loadedRoot = (0, util_1$1.loadProtosWithOptionsSync)(filename, options);
+    const loadedRoot = (0, util_1.loadProtosWithOptionsSync)(filename, options);
     return createPackageDefinition(loadedRoot, options);
 }
 var loadSync_1 = src$1.loadSync = loadSync;
@@ -22130,7 +22336,7 @@ function loadFileDescriptorSetFromObject(descriptorSet, options) {
     return createPackageDefinitionFromDescriptorSet(decodedDescriptorSet, options);
 }
 src$1.loadFileDescriptorSetFromObject = loadFileDescriptorSetFromObject;
-(0, util_1$1.addCommonProtos)();
+(0, util_1.addCommonProtos)();
 
 var hasRequiredChannelz;
 
@@ -22801,7 +23007,7 @@ function requireSubchannel () {
 	subchannel.Subchannel = void 0;
 	const connectivity_state_1 = connectivityState;
 	const backoff_timeout_1 = requireBackoffTimeout();
-	const logging = logging$9;
+	const logging = logging$8;
 	const constants_1 = constants;
 	const uri_parser_1 = uriParser;
 	const subchannel_address_1 = subchannelAddress;
@@ -23119,6 +23325,15 @@ function requireSubchannel () {
 	    getChannelzRef() {
 	        return this.channelzRef;
 	    }
+	    isHealthy() {
+	        return true;
+	    }
+	    addHealthStateWatcher(listener) {
+	        // Do nothing with the listener
+	    }
+	    removeHealthStateWatcher(listener) {
+	        // Do nothing with the listener
+	    }
 	    getRealSubchannel() {
 	        return this;
 	    }
@@ -23171,7 +23386,7 @@ function requireResolverDns () {
 		const service_config_1 = requireServiceConfig();
 		const constants_1 = constants;
 		const metadata_1 = metadata;
-		const logging = logging$9;
+		const logging = logging$8;
 		const constants_2 = constants;
 		const uri_parser_1 = uriParser;
 		const net_1 = require$$0$3;
@@ -23187,22 +23402,6 @@ function requireResolverDns () {
 		const DEFAULT_MIN_TIME_BETWEEN_RESOLUTIONS_MS = 30000;
 		const resolveTxtPromise = util.promisify(dns.resolveTxt);
 		const dnsLookupPromise = util.promisify(dns.lookup);
-		/**
-		 * Merge any number of arrays into a single alternating array
-		 * @param arrays
-		 */
-		function mergeArrays(...arrays) {
-		    const result = [];
-		    for (let i = 0; i <
-		        Math.max.apply(null, arrays.map(array => array.length)); i++) {
-		        for (const array of arrays) {
-		            if (i < array.length) {
-		                result.push(array[i]);
-		            }
-		        }
-		    }
-		    return result;
-		}
 		/**
 		 * Resolver implementation that handles DNS names and IP addresses.
 		 */
@@ -23231,8 +23430,12 @@ function requireResolverDns () {
 		            if ((0, net_1.isIPv4)(hostPort.host) || (0, net_1.isIPv6)(hostPort.host)) {
 		                this.ipResult = [
 		                    {
-		                        host: hostPort.host,
-		                        port: (_a = hostPort.port) !== null && _a !== void 0 ? _a : exports.DEFAULT_PORT,
+		                        addresses: [
+		                            {
+		                                host: hostPort.host,
+		                                port: (_a = hostPort.port) !== null && _a !== void 0 ? _a : exports.DEFAULT_PORT,
+		                            },
+		                        ],
 		                    },
 		                ];
 		                this.dnsHostname = null;
@@ -23322,11 +23525,12 @@ function requireResolverDns () {
 		                this.pendingLookupPromise = null;
 		                this.backoff.reset();
 		                this.backoff.stop();
-		                const ip4Addresses = addressList.filter(addr => addr.family === 4);
-		                const ip6Addresses = addressList.filter(addr => addr.family === 6);
-		                this.latestLookupResult = mergeArrays(ip6Addresses, ip4Addresses).map(addr => ({ host: addr.address, port: +this.port }));
+		                const subchannelAddresses = addressList.map(addr => ({ host: addr.address, port: +this.port }));
+		                this.latestLookupResult = subchannelAddresses.map(address => ({
+		                    addresses: [address],
+		                }));
 		                const allAddressesString = '[' +
-		                    this.latestLookupResult
+		                    subchannelAddresses
 		                        .map(addr => addr.host + ':' + addr.port)
 		                        .join(',') +
 		                    ']';
@@ -23497,19 +23701,19 @@ function requireResolverDns () {
  */
 Object.defineProperty(http_proxy, "__esModule", { value: true });
 http_proxy.getProxiedConnection = http_proxy.mapProxyName = void 0;
-const logging_1 = logging$9;
+const logging_1 = logging$8;
 const constants_1$9 = constants;
 const resolver_1$1 = resolver;
 const http = require$$3$1;
 const tls = require$$0$2;
-const logging$7 = logging$9;
+const logging$6 = logging$8;
 const subchannel_address_1$1 = subchannelAddress;
 const uri_parser_1$2 = uriParser;
 const url_1 = require$$7;
 const resolver_dns_1 = requireResolverDns();
-const TRACER_NAME$6 = 'proxy';
-function trace$1(text) {
-    logging$7.trace(constants_1$9.LogVerbosity.DEBUG, TRACER_NAME$6, text);
+const TRACER_NAME$5 = 'proxy';
+function trace(text) {
+    logging$6.trace(constants_1$9.LogVerbosity.DEBUG, TRACER_NAME$5, text);
 }
 function getProxyInfo() {
     let proxyEnv = '';
@@ -23569,7 +23773,7 @@ function getProxyInfo() {
     if (userCred) {
         result.creds = userCred;
     }
-    trace$1('Proxy server ' + result.address + ' set by environment variable ' + envVar);
+    trace('Proxy server ' + result.address + ' set by environment variable ' + envVar);
     return result;
 }
 function getNoProxyHostList() {
@@ -23581,7 +23785,7 @@ function getNoProxyHostList() {
         envVar = 'no_proxy';
     }
     if (noProxyStr) {
-        trace$1('No proxy server list set by environment variable ' + envVar);
+        trace('No proxy server list set by environment variable ' + envVar);
         return noProxyStr.split(',');
     }
     else {
@@ -23611,7 +23815,7 @@ function mapProxyName(target, options) {
     const serverHost = hostPort.host;
     for (const host of getNoProxyHostList()) {
         if (host === serverHost) {
-            trace$1('Not using proxy for target in no_proxy list: ' + (0, uri_parser_1$2.uriToString)(target));
+            trace('Not using proxy for target in no_proxy list: ' + (0, uri_parser_1$2.uriToString)(target));
             return noProxyResult;
         }
     }
@@ -23667,7 +23871,7 @@ function getProxiedConnection(address, channelOptions, connectionOptions) {
     }
     options.headers = headers;
     const proxyAddressString = (0, subchannel_address_1$1.subchannelAddressToString)(address);
-    trace$1('Using proxy ' + proxyAddressString + ' to connect to ' + options.path);
+    trace('Using proxy ' + proxyAddressString + ' to connect to ' + options.path);
     return new Promise((resolve, reject) => {
         const request = http.request(options);
         request.once('connect', (res, socket, head) => {
@@ -23675,7 +23879,7 @@ function getProxiedConnection(address, channelOptions, connectionOptions) {
             request.removeAllListeners();
             socket.removeAllListeners();
             if (res.statusCode === 200) {
-                trace$1('Successfully connected to ' +
+                trace('Successfully connected to ' +
                     options.path +
                     ' through proxy ' +
                     proxyAddressString);
@@ -23688,14 +23892,14 @@ function getProxiedConnection(address, channelOptions, connectionOptions) {
                     const hostPort = (0, uri_parser_1$2.splitHostPort)(targetPath);
                     const remoteHost = (_a = hostPort === null || hostPort === void 0 ? void 0 : hostPort.host) !== null && _a !== void 0 ? _a : targetPath;
                     const cts = tls.connect(Object.assign({ host: remoteHost, servername: remoteHost, socket: socket }, connectionOptions), () => {
-                        trace$1('Successfully established a TLS connection to ' +
+                        trace('Successfully established a TLS connection to ' +
                             options.path +
                             ' through proxy ' +
                             proxyAddressString);
                         resolve({ socket: cts, realTarget: parsedTarget });
                     });
                     cts.on('error', (error) => {
-                        trace$1('Failed to establish a TLS connection to ' +
+                        trace('Failed to establish a TLS connection to ' +
                             options.path +
                             ' through proxy ' +
                             proxyAddressString +
@@ -23705,7 +23909,7 @@ function getProxiedConnection(address, channelOptions, connectionOptions) {
                     });
                 }
                 else {
-                    trace$1('Successfully established a plaintext connection to ' +
+                    trace('Successfully established a plaintext connection to ' +
                         options.path +
                         ' through proxy ' +
                         proxyAddressString);
@@ -23742,100 +23946,108 @@ var subchannelCall = {};
 
 var streamDecoder = {};
 
-/*
- * Copyright 2019 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-Object.defineProperty(streamDecoder, "__esModule", { value: true });
-streamDecoder.StreamDecoder = void 0;
-var ReadState;
-(function (ReadState) {
-    ReadState[ReadState["NO_DATA"] = 0] = "NO_DATA";
-    ReadState[ReadState["READING_SIZE"] = 1] = "READING_SIZE";
-    ReadState[ReadState["READING_MESSAGE"] = 2] = "READING_MESSAGE";
-})(ReadState || (ReadState = {}));
-class StreamDecoder {
-    constructor() {
-        this.readState = ReadState.NO_DATA;
-        this.readCompressFlag = Buffer.alloc(1);
-        this.readPartialSize = Buffer.alloc(4);
-        this.readSizeRemaining = 4;
-        this.readMessageSize = 0;
-        this.readPartialMessage = [];
-        this.readMessageRemaining = 0;
-    }
-    write(data) {
-        let readHead = 0;
-        let toRead;
-        const result = [];
-        while (readHead < data.length) {
-            switch (this.readState) {
-                case ReadState.NO_DATA:
-                    this.readCompressFlag = data.slice(readHead, readHead + 1);
-                    readHead += 1;
-                    this.readState = ReadState.READING_SIZE;
-                    this.readPartialSize.fill(0);
-                    this.readSizeRemaining = 4;
-                    this.readMessageSize = 0;
-                    this.readMessageRemaining = 0;
-                    this.readPartialMessage = [];
-                    break;
-                case ReadState.READING_SIZE:
-                    toRead = Math.min(data.length - readHead, this.readSizeRemaining);
-                    data.copy(this.readPartialSize, 4 - this.readSizeRemaining, readHead, readHead + toRead);
-                    this.readSizeRemaining -= toRead;
-                    readHead += toRead;
-                    // readSizeRemaining >=0 here
-                    if (this.readSizeRemaining === 0) {
-                        this.readMessageSize = this.readPartialSize.readUInt32BE(0);
-                        this.readMessageRemaining = this.readMessageSize;
-                        if (this.readMessageRemaining > 0) {
-                            this.readState = ReadState.READING_MESSAGE;
-                        }
-                        else {
-                            const message = Buffer.concat([this.readCompressFlag, this.readPartialSize], 5);
-                            this.readState = ReadState.NO_DATA;
-                            result.push(message);
-                        }
-                    }
-                    break;
-                case ReadState.READING_MESSAGE:
-                    toRead = Math.min(data.length - readHead, this.readMessageRemaining);
-                    this.readPartialMessage.push(data.slice(readHead, readHead + toRead));
-                    this.readMessageRemaining -= toRead;
-                    readHead += toRead;
-                    // readMessageRemaining >=0 here
-                    if (this.readMessageRemaining === 0) {
-                        // At this point, we have read a full message
-                        const framedMessageBuffers = [
-                            this.readCompressFlag,
-                            this.readPartialSize,
-                        ].concat(this.readPartialMessage);
-                        const framedMessage = Buffer.concat(framedMessageBuffers, this.readMessageSize + 5);
-                        this.readState = ReadState.NO_DATA;
-                        result.push(framedMessage);
-                    }
-                    break;
-                default:
-                    throw new Error('Unexpected read state');
-            }
-        }
-        return result;
-    }
+var hasRequiredStreamDecoder;
+
+function requireStreamDecoder () {
+	if (hasRequiredStreamDecoder) return streamDecoder;
+	hasRequiredStreamDecoder = 1;
+	/*
+	 * Copyright 2019 gRPC authors.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 *     http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 */
+	Object.defineProperty(streamDecoder, "__esModule", { value: true });
+	streamDecoder.StreamDecoder = void 0;
+	var ReadState;
+	(function (ReadState) {
+	    ReadState[ReadState["NO_DATA"] = 0] = "NO_DATA";
+	    ReadState[ReadState["READING_SIZE"] = 1] = "READING_SIZE";
+	    ReadState[ReadState["READING_MESSAGE"] = 2] = "READING_MESSAGE";
+	})(ReadState || (ReadState = {}));
+	class StreamDecoder {
+	    constructor() {
+	        this.readState = ReadState.NO_DATA;
+	        this.readCompressFlag = Buffer.alloc(1);
+	        this.readPartialSize = Buffer.alloc(4);
+	        this.readSizeRemaining = 4;
+	        this.readMessageSize = 0;
+	        this.readPartialMessage = [];
+	        this.readMessageRemaining = 0;
+	    }
+	    write(data) {
+	        let readHead = 0;
+	        let toRead;
+	        const result = [];
+	        while (readHead < data.length) {
+	            switch (this.readState) {
+	                case ReadState.NO_DATA:
+	                    this.readCompressFlag = data.slice(readHead, readHead + 1);
+	                    readHead += 1;
+	                    this.readState = ReadState.READING_SIZE;
+	                    this.readPartialSize.fill(0);
+	                    this.readSizeRemaining = 4;
+	                    this.readMessageSize = 0;
+	                    this.readMessageRemaining = 0;
+	                    this.readPartialMessage = [];
+	                    break;
+	                case ReadState.READING_SIZE:
+	                    toRead = Math.min(data.length - readHead, this.readSizeRemaining);
+	                    data.copy(this.readPartialSize, 4 - this.readSizeRemaining, readHead, readHead + toRead);
+	                    this.readSizeRemaining -= toRead;
+	                    readHead += toRead;
+	                    // readSizeRemaining >=0 here
+	                    if (this.readSizeRemaining === 0) {
+	                        this.readMessageSize = this.readPartialSize.readUInt32BE(0);
+	                        this.readMessageRemaining = this.readMessageSize;
+	                        if (this.readMessageRemaining > 0) {
+	                            this.readState = ReadState.READING_MESSAGE;
+	                        }
+	                        else {
+	                            const message = Buffer.concat([this.readCompressFlag, this.readPartialSize], 5);
+	                            this.readState = ReadState.NO_DATA;
+	                            result.push(message);
+	                        }
+	                    }
+	                    break;
+	                case ReadState.READING_MESSAGE:
+	                    toRead = Math.min(data.length - readHead, this.readMessageRemaining);
+	                    this.readPartialMessage.push(data.slice(readHead, readHead + toRead));
+	                    this.readMessageRemaining -= toRead;
+	                    readHead += toRead;
+	                    // readMessageRemaining >=0 here
+	                    if (this.readMessageRemaining === 0) {
+	                        // At this point, we have read a full message
+	                        const framedMessageBuffers = [
+	                            this.readCompressFlag,
+	                            this.readPartialSize,
+	                        ].concat(this.readPartialMessage);
+	                        const framedMessage = Buffer.concat(framedMessageBuffers, this.readMessageSize + 5);
+	                        this.readState = ReadState.NO_DATA;
+	                        result.push(framedMessage);
+	                    }
+	                    break;
+	                default:
+	                    throw new Error('Unexpected read state');
+	            }
+	        }
+	        return result;
+	    }
+	}
+	streamDecoder.StreamDecoder = StreamDecoder;
+	
+	return streamDecoder;
 }
-streamDecoder.StreamDecoder = StreamDecoder;
 
 /*
  * Copyright 2019 gRPC authors.
@@ -23855,14 +24067,14 @@ streamDecoder.StreamDecoder = StreamDecoder;
  */
 Object.defineProperty(subchannelCall, "__esModule", { value: true });
 subchannelCall.Http2SubchannelCall = void 0;
-const http2$3 = require$$0$5;
+const http2$2 = require$$0$5;
 const os = require$$0;
 const constants_1$8 = constants;
 const metadata_1$5 = metadata;
-const stream_decoder_1$1 = streamDecoder;
-const logging$6 = logging$9;
+const stream_decoder_1 = requireStreamDecoder();
+const logging$5 = logging$8;
 const constants_2 = constants;
-const TRACER_NAME$5 = 'subchannel_call';
+const TRACER_NAME$4 = 'subchannel_call';
 /**
  * Should do approximately the same thing as util.getSystemErrorName but the
  * TypeScript types don't have that function for some reason so I just made my
@@ -23884,7 +24096,7 @@ class Http2SubchannelCall {
         this.listener = listener;
         this.transport = transport;
         this.callId = callId;
-        this.decoder = new stream_decoder_1$1.StreamDecoder();
+        this.decoder = new stream_decoder_1.StreamDecoder();
         this.isReadFilterPending = false;
         this.isPushPending = false;
         this.canPush = false;
@@ -23929,7 +24141,7 @@ class Http2SubchannelCall {
                 default:
                     this.mappedStatusCode = constants_1$8.Status.UNKNOWN;
             }
-            if (flags & http2$3.constants.NGHTTP2_FLAG_END_STREAM) {
+            if (flags & http2$2.constants.NGHTTP2_FLAG_END_STREAM) {
                 this.handleTrailers(headers);
             }
             else {
@@ -23986,7 +24198,7 @@ class Http2SubchannelCall {
                 let code;
                 let details = '';
                 switch (http2Stream.rstCode) {
-                    case http2$3.constants.NGHTTP2_NO_ERROR:
+                    case http2$2.constants.NGHTTP2_NO_ERROR:
                         /* If we get a NO_ERROR code and we already have a status, the
                          * stream completed properly and we just haven't fully processed
                          * it yet */
@@ -23996,23 +24208,23 @@ class Http2SubchannelCall {
                         code = constants_1$8.Status.INTERNAL;
                         details = `Received RST_STREAM with code ${http2Stream.rstCode}`;
                         break;
-                    case http2$3.constants.NGHTTP2_REFUSED_STREAM:
+                    case http2$2.constants.NGHTTP2_REFUSED_STREAM:
                         code = constants_1$8.Status.UNAVAILABLE;
                         details = 'Stream refused by server';
                         break;
-                    case http2$3.constants.NGHTTP2_CANCEL:
+                    case http2$2.constants.NGHTTP2_CANCEL:
                         code = constants_1$8.Status.CANCELLED;
                         details = 'Call cancelled';
                         break;
-                    case http2$3.constants.NGHTTP2_ENHANCE_YOUR_CALM:
+                    case http2$2.constants.NGHTTP2_ENHANCE_YOUR_CALM:
                         code = constants_1$8.Status.RESOURCE_EXHAUSTED;
                         details = 'Bandwidth exhausted or memory limit exceeded';
                         break;
-                    case http2$3.constants.NGHTTP2_INADEQUATE_SECURITY:
+                    case http2$2.constants.NGHTTP2_INADEQUATE_SECURITY:
                         code = constants_1$8.Status.PERMISSION_DENIED;
                         details = 'Protocol not secure enough';
                         break;
-                    case http2$3.constants.NGHTTP2_INTERNAL_ERROR:
+                    case http2$2.constants.NGHTTP2_INTERNAL_ERROR:
                         code = constants_1$8.Status.INTERNAL;
                         if (this.internalError === null) {
                             /* This error code was previously handled in the default case, and
@@ -24109,7 +24321,7 @@ class Http2SubchannelCall {
         }
     }
     trace(text) {
-        logging$6.trace(constants_2.LogVerbosity.DEBUG, TRACER_NAME$5, '[' + this.callId + '] ' + text);
+        logging$5.trace(constants_2.LogVerbosity.DEBUG, TRACER_NAME$4, '[' + this.callId + '] ' + text);
     }
     /**
      * On first call, emits a 'status' event with the given StatusObject.
@@ -24217,10 +24429,10 @@ class Http2SubchannelCall {
              * RST_STREAM as a result after we have the status */
             let code;
             if (((_a = this.finalStatus) === null || _a === void 0 ? void 0 : _a.code) === constants_1$8.Status.OK) {
-                code = http2$3.constants.NGHTTP2_NO_ERROR;
+                code = http2$2.constants.NGHTTP2_NO_ERROR;
             }
             else {
-                code = http2$3.constants.NGHTTP2_CANCEL;
+                code = http2$2.constants.NGHTTP2_CANCEL;
             }
             this.trace('close http2 stream with code ' + code);
             this.http2Stream.close(code);
@@ -24351,7 +24563,7 @@ function requireTransport () {
 	const channelz_1 = requireChannelz();
 	const constants_1 = constants;
 	const http_proxy_1 = http_proxy;
-	const logging = logging$9;
+	const logging = logging$8;
 	const resolver_1 = resolver;
 	const subchannel_address_1 = subchannelAddress;
 	const uri_parser_1 = uriParser;
@@ -25299,11 +25511,11 @@ function requireFilter () {
  */
 Object.defineProperty(compressionFilter, "__esModule", { value: true });
 compressionFilter.CompressionFilterFactory = compressionFilter.CompressionFilter = void 0;
-const zlib$1 = require$$0$6;
+const zlib = require$$0$6;
 const compression_algorithms_1 = compressionAlgorithms;
 const constants_1$7 = constants;
 const filter_1$1 = requireFilter();
-const logging$5 = logging$9;
+const logging$4 = logging$8;
 const isCompressionAlgorithmKey = (key) => {
     return (typeof key === 'number' && typeof compression_algorithms_1.CompressionAlgorithms[key] === 'string');
 };
@@ -25357,7 +25569,7 @@ class IdentityHandler extends CompressionHandler {
 class DeflateHandler extends CompressionHandler {
     compressMessage(message) {
         return new Promise((resolve, reject) => {
-            zlib$1.deflate(message, (err, output) => {
+            zlib.deflate(message, (err, output) => {
                 if (err) {
                     reject(err);
                 }
@@ -25369,7 +25581,7 @@ class DeflateHandler extends CompressionHandler {
     }
     decompressMessage(message) {
         return new Promise((resolve, reject) => {
-            zlib$1.inflate(message, (err, output) => {
+            zlib.inflate(message, (err, output) => {
                 if (err) {
                     reject(err);
                 }
@@ -25383,7 +25595,7 @@ class DeflateHandler extends CompressionHandler {
 class GzipHandler extends CompressionHandler {
     compressMessage(message) {
         return new Promise((resolve, reject) => {
-            zlib$1.gzip(message, (err, output) => {
+            zlib.gzip(message, (err, output) => {
                 if (err) {
                     reject(err);
                 }
@@ -25395,7 +25607,7 @@ class GzipHandler extends CompressionHandler {
     }
     decompressMessage(message) {
         return new Promise((resolve, reject) => {
-            zlib$1.unzip(message, (err, output) => {
+            zlib.unzip(message, (err, output) => {
                 if (err) {
                     reject(err);
                 }
@@ -25458,7 +25670,7 @@ class CompressionFilter extends filter_1$1.BaseFilter {
                 }
             }
             else {
-                logging$5.log(constants_1$7.LogVerbosity.ERROR, `Invalid value provided for grpc.default_compression_algorithm option: ${compressionAlgorithmKey}`);
+                logging$4.log(constants_1$7.LogVerbosity.ERROR, `Invalid value provided for grpc.default_compression_algorithm option: ${compressionAlgorithmKey}`);
             }
         }
     }
@@ -25793,10 +26005,10 @@ const deadline_1$1 = deadline;
 const metadata_1$3 = metadata;
 const picker_1 = requirePicker();
 const uri_parser_1$1 = uriParser;
-const logging$4 = logging$9;
+const logging$3 = logging$8;
 const control_plane_status_1$1 = controlPlaneStatus;
-const http2$2 = require$$0$5;
-const TRACER_NAME$4 = 'load_balancing_call';
+const http2$1 = require$$0$5;
+const TRACER_NAME$3 = 'load_balancing_call';
 class LoadBalancingCall {
     constructor(channel, callConfig, methodName, host, credentials, deadline, callNumber) {
         var _a, _b;
@@ -25829,7 +26041,7 @@ class LoadBalancingCall {
         this.serviceUrl = `https://${hostname}/${serviceName}`;
     }
     trace(text) {
-        logging$4.trace(constants_1$4.LogVerbosity.DEBUG, TRACER_NAME$4, '[' + this.callNumber + '] ' + text);
+        logging$3.trace(constants_1$4.LogVerbosity.DEBUG, TRACER_NAME$3, '[' + this.callNumber + '] ' + text);
     }
     outputStatus(status, progress) {
         var _a, _b;
@@ -25854,7 +26066,8 @@ class LoadBalancingCall {
             throw new Error('doPick called before start');
         }
         this.trace('Pick called');
-        const pickResult = this.channel.doPick(this.metadata, this.callConfig.pickInformation);
+        const finalMetadata = this.metadata.clone();
+        const pickResult = this.channel.doPick(finalMetadata, this.callConfig.pickInformation);
         const subchannelString = pickResult.subchannel
             ? '(' +
                 pickResult.subchannel.getChannelzRef().id +
@@ -25882,7 +26095,6 @@ class LoadBalancingCall {
                         this.trace('Credentials metadata generation finished after call ended');
                         return;
                     }
-                    const finalMetadata = this.metadata.clone();
                     finalMetadata.merge(credsMetadata);
                     if (finalMetadata.get('authorization').length > 1) {
                         this.outputStatus({
@@ -25919,7 +26131,7 @@ class LoadBalancingCall {
                             onReceiveStatus: status => {
                                 this.trace('Received status');
                                 if (status.rstCode ===
-                                    http2$2.constants.NGHTTP2_REFUSED_STREAM) {
+                                    http2$1.constants.NGHTTP2_REFUSED_STREAM) {
                                     this.outputStatus(status, 'REFUSED');
                                 }
                                 else {
@@ -26060,9 +26272,9 @@ resolvingCall.ResolvingCall = void 0;
 const constants_1$3 = constants;
 const deadline_1 = deadline;
 const metadata_1$2 = metadata;
-const logging$3 = logging$9;
+const logging$2 = logging$8;
 const control_plane_status_1 = controlPlaneStatus;
-const TRACER_NAME$3 = 'resolving_call';
+const TRACER_NAME$2 = 'resolving_call';
 class ResolvingCall {
     constructor(channel, method, options, filterStackFactory, credentials, callNumber) {
         this.channel = channel;
@@ -26101,7 +26313,7 @@ class ResolvingCall {
         this.runDeadlineTimer();
     }
     trace(text) {
-        logging$3.trace(constants_1$3.LogVerbosity.DEBUG, TRACER_NAME$3, '[' + this.callNumber + '] ' + text);
+        logging$2.trace(constants_1$3.LogVerbosity.DEBUG, TRACER_NAME$2, '[' + this.callNumber + '] ' + text);
     }
     runDeadlineTimer() {
         clearTimeout(this.deadlineTimer);
@@ -26333,8 +26545,8 @@ Object.defineProperty(retryingCall, "__esModule", { value: true });
 retryingCall.RetryingCall = retryingCall.MessageBufferTracker = retryingCall.RetryThrottler = void 0;
 const constants_1$2 = constants;
 const metadata_1$1 = metadata;
-const logging$2 = logging$9;
-const TRACER_NAME$2 = 'retrying_call';
+const logging$1 = logging$8;
+const TRACER_NAME$1 = 'retrying_call';
 class RetryThrottler {
     constructor(maxTokens, tokenRatio, previousRetryThrottler) {
         this.maxTokens = maxTokens;
@@ -26456,7 +26668,7 @@ class RetryingCall {
         return this.callNumber;
     }
     trace(text) {
-        logging$2.trace(constants_1$2.LogVerbosity.DEBUG, TRACER_NAME$2, '[' + this.callNumber + '] ' + text);
+        logging$1.trace(constants_1$2.LogVerbosity.DEBUG, TRACER_NAME$1, '[' + this.callNumber + '] ' + text);
     }
     reportStatus(statusObject) {
         this.trace('ended with status: code=' +
@@ -26976,6 +27188,20 @@ function requireSubchannelInterface () {
 	class BaseSubchannelWrapper {
 	    constructor(child) {
 	        this.child = child;
+	        this.healthy = true;
+	        this.healthListeners = new Set();
+	        child.addHealthStateWatcher(childHealthy => {
+	            /* A change to the child health state only affects this wrapper's overall
+	             * health state if this wrapper is reporting healthy. */
+	            if (this.healthy) {
+	                this.updateHealthListeners();
+	            }
+	        });
+	    }
+	    updateHealthListeners() {
+	        for (const listener of this.healthListeners) {
+	            listener(this.isHealthy());
+	        }
 	    }
 	    getConnectivityState() {
 	        return this.child.getConnectivityState();
@@ -27003,6 +27229,25 @@ function requireSubchannelInterface () {
 	    }
 	    getChannelzRef() {
 	        return this.child.getChannelzRef();
+	    }
+	    isHealthy() {
+	        return this.healthy && this.child.isHealthy();
+	    }
+	    addHealthStateWatcher(listener) {
+	        this.healthListeners.add(listener);
+	    }
+	    removeHealthStateWatcher(listener) {
+	        this.healthListeners.delete(listener);
+	    }
+	    setHealthy(healthy) {
+	        if (healthy !== this.healthy) {
+	            this.healthy = healthy;
+	            /* A change to this wrapper's health state only affects the overall
+	             * reported health state if the child is healthy. */
+	            if (this.child.isHealthy()) {
+	                this.updateHealthListeners();
+	            }
+	        }
 	    }
 	    getRealSubchannel() {
 	        return this.child.getRealSubchannel();
@@ -27047,7 +27292,7 @@ function requireInternalChannel () {
 	const filter_stack_1 = requireFilterStack();
 	const compression_filter_1 = compressionFilter;
 	const resolver_1 = resolver;
-	const logging_1 = logging$9;
+	const logging_1 = logging$8;
 	const max_message_size_filter_1 = maxMessageSizeFilter;
 	const http_proxy_1 = http_proxy;
 	const uri_parser_1 = uriParser;
@@ -27123,6 +27368,12 @@ function requireInternalChannel () {
 	        this.channelzEnabled = true;
 	        this.callTracker = new channelz_1.ChannelzCallTracker();
 	        this.childrenTracker = new channelz_1.ChannelzChildrenTracker();
+	        /**
+	         * Randomly generated ID to be passed to the config selector, for use by
+	         * ring_hash in xDS. An integer distributed approximately uniformly between
+	         * 0 and MAX_SAFE_INTEGER.
+	         */
+	        this.randomChannelId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
 	        if (typeof target !== 'string') {
 	            throw new TypeError('Channel target must be a string');
 	        }
@@ -27362,7 +27613,7 @@ function requireInternalChannel () {
 	        if (this.configSelector) {
 	            return {
 	                type: 'SUCCESS',
-	                config: this.configSelector(method, metadata),
+	                config: this.configSelector(method, metadata, this.randomChannelId),
 	            };
 	        }
 	        else {
@@ -27654,58 +27905,37 @@ var serverCall = {};
  *
  */
 Object.defineProperty(serverCall, "__esModule", { value: true });
-serverCall.Http2ServerCallStream = serverCall.ServerDuplexStreamImpl = serverCall.ServerWritableStreamImpl = serverCall.ServerReadableStreamImpl = serverCall.ServerUnaryCallImpl = void 0;
+serverCall.ServerDuplexStreamImpl = serverCall.ServerWritableStreamImpl = serverCall.ServerReadableStreamImpl = serverCall.ServerUnaryCallImpl = serverCall.serverErrorToStatus = void 0;
 const events_1 = require$$0$4;
-const http2$1 = require$$0$5;
 const stream_1 = require$$1$2;
-const zlib = require$$0$6;
-const util_1 = require$$2;
 const constants_1$1 = constants;
 const metadata_1 = metadata;
-const stream_decoder_1 = streamDecoder;
-const logging$1 = logging$9;
-const error_1 = error;
-const TRACER_NAME$1 = 'server_call';
-const unzip = (0, util_1.promisify)(zlib.unzip);
-const inflate = (0, util_1.promisify)(zlib.inflate);
-function trace(text) {
-    logging$1.trace(constants_1$1.LogVerbosity.DEBUG, TRACER_NAME$1, text);
+function serverErrorToStatus(error, overrideTrailers) {
+    var _a;
+    const status = {
+        code: constants_1$1.Status.UNKNOWN,
+        details: 'message' in error ? error.message : 'Unknown Error',
+        metadata: (_a = overrideTrailers !== null && overrideTrailers !== void 0 ? overrideTrailers : error.metadata) !== null && _a !== void 0 ? _a : null
+    };
+    if ('code' in error &&
+        typeof error.code === 'number' &&
+        Number.isInteger(error.code)) {
+        status.code = error.code;
+        if ('details' in error && typeof error.details === 'string') {
+            status.details = error.details;
+        }
+    }
+    return status;
 }
-const GRPC_ACCEPT_ENCODING_HEADER = 'grpc-accept-encoding';
-const GRPC_ENCODING_HEADER = 'grpc-encoding';
-const GRPC_MESSAGE_HEADER = 'grpc-message';
-const GRPC_STATUS_HEADER = 'grpc-status';
-const GRPC_TIMEOUT_HEADER = 'grpc-timeout';
-const DEADLINE_REGEX = /(\d{1,8})\s*([HMSmun])/;
-const deadlineUnitsToMs = {
-    H: 3600000,
-    M: 60000,
-    S: 1000,
-    m: 1,
-    u: 0.001,
-    n: 0.000001,
-};
-const defaultCompressionHeaders = {
-    // TODO(cjihrig): Remove these encoding headers from the default response
-    // once compression is integrated.
-    [GRPC_ACCEPT_ENCODING_HEADER]: 'identity,deflate,gzip',
-    [GRPC_ENCODING_HEADER]: 'identity',
-};
-const defaultResponseHeaders = {
-    [http2$1.constants.HTTP2_HEADER_STATUS]: http2$1.constants.HTTP_STATUS_OK,
-    [http2$1.constants.HTTP2_HEADER_CONTENT_TYPE]: 'application/grpc+proto',
-};
-const defaultResponseOptions = {
-    waitForTrailers: true,
-};
+serverCall.serverErrorToStatus = serverErrorToStatus;
 class ServerUnaryCallImpl extends events_1.EventEmitter {
-    constructor(call, metadata, request) {
+    constructor(path, call, metadata, request) {
         super();
+        this.path = path;
         this.call = call;
         this.metadata = metadata;
         this.request = request;
         this.cancelled = false;
-        this.call.setupSurfaceCall(this);
     }
     getPeer() {
         return this.call.getPeer();
@@ -27717,25 +27947,20 @@ class ServerUnaryCallImpl extends events_1.EventEmitter {
         return this.call.getDeadline();
     }
     getPath() {
-        return this.call.getPath();
+        return this.path;
     }
 }
 serverCall.ServerUnaryCallImpl = ServerUnaryCallImpl;
 class ServerReadableStreamImpl extends stream_1.Readable {
-    constructor(call, metadata, deserialize, encoding) {
+    constructor(path, call, metadata) {
         super({ objectMode: true });
+        this.path = path;
         this.call = call;
         this.metadata = metadata;
-        this.deserialize = deserialize;
         this.cancelled = false;
-        this.call.setupSurfaceCall(this);
-        this.call.setupReadable(this, encoding);
     }
     _read(size) {
-        if (!this.call.consumeUnpushedMessages(this)) {
-            return;
-        }
-        this.call.resume();
+        this.call.startRead();
     }
     getPeer() {
         return this.call.getPeer();
@@ -27747,22 +27972,25 @@ class ServerReadableStreamImpl extends stream_1.Readable {
         return this.call.getDeadline();
     }
     getPath() {
-        return this.call.getPath();
+        return this.path;
     }
 }
 serverCall.ServerReadableStreamImpl = ServerReadableStreamImpl;
 class ServerWritableStreamImpl extends stream_1.Writable {
-    constructor(call, metadata, serialize, request) {
+    constructor(path, call, metadata, request) {
         super({ objectMode: true });
+        this.path = path;
         this.call = call;
         this.metadata = metadata;
-        this.serialize = serialize;
         this.request = request;
+        this.pendingStatus = {
+            code: constants_1$1.Status.OK,
+            details: 'OK'
+        };
         this.cancelled = false;
         this.trailingMetadata = new metadata_1.Metadata();
-        this.call.setupSurfaceCall(this);
         this.on('error', err => {
-            this.call.sendError(err);
+            this.pendingStatus = serverErrorToStatus(err);
             this.end();
         });
     }
@@ -27776,32 +28004,16 @@ class ServerWritableStreamImpl extends stream_1.Writable {
         return this.call.getDeadline();
     }
     getPath() {
-        return this.call.getPath();
+        return this.path;
     }
     _write(chunk, encoding, 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callback) {
-        try {
-            const response = this.call.serializeMessage(chunk);
-            if (!this.call.write(response)) {
-                this.call.once('drain', callback);
-                return;
-            }
-        }
-        catch (err) {
-            this.emit('error', {
-                details: (0, error_1.getErrorMessage)(err),
-                code: constants_1$1.Status.INTERNAL,
-            });
-        }
-        callback();
+        this.call.sendMessage(chunk, callback);
     }
     _final(callback) {
-        this.call.sendStatus({
-            code: constants_1$1.Status.OK,
-            details: 'OK',
-            metadata: this.trailingMetadata,
-        });
+        var _a;
+        this.call.sendStatus(Object.assign(Object.assign({}, this.pendingStatus), { metadata: (_a = this.pendingStatus.metadata) !== null && _a !== void 0 ? _a : this.trailingMetadata }));
         callback(null);
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27814,18 +28026,19 @@ class ServerWritableStreamImpl extends stream_1.Writable {
 }
 serverCall.ServerWritableStreamImpl = ServerWritableStreamImpl;
 class ServerDuplexStreamImpl extends stream_1.Duplex {
-    constructor(call, metadata, serialize, deserialize, encoding) {
+    constructor(path, call, metadata) {
         super({ objectMode: true });
+        this.path = path;
         this.call = call;
         this.metadata = metadata;
-        this.serialize = serialize;
-        this.deserialize = deserialize;
+        this.pendingStatus = {
+            code: constants_1$1.Status.OK,
+            details: 'OK'
+        };
         this.cancelled = false;
         this.trailingMetadata = new metadata_1.Metadata();
-        this.call.setupSurfaceCall(this);
-        this.call.setupReadable(this, encoding);
         this.on('error', err => {
-            this.call.sendError(err);
+            this.pendingStatus = serverErrorToStatus(err);
             this.end();
         });
     }
@@ -27839,7 +28052,20 @@ class ServerDuplexStreamImpl extends stream_1.Duplex {
         return this.call.getDeadline();
     }
     getPath() {
-        return this.call.getPath();
+        return this.path;
+    }
+    _read(size) {
+        this.call.startRead();
+    }
+    _write(chunk, encoding, 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    callback) {
+        this.call.sendMessage(chunk, callback);
+    }
+    _final(callback) {
+        var _a;
+        this.call.sendStatus(Object.assign(Object.assign({}, this.pendingStatus), { metadata: (_a = this.pendingStatus.metadata) !== null && _a !== void 0 ? _a : this.trailingMetadata }));
+        callback(null);
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     end(metadata) {
@@ -27850,454 +28076,6 @@ class ServerDuplexStreamImpl extends stream_1.Duplex {
     }
 }
 serverCall.ServerDuplexStreamImpl = ServerDuplexStreamImpl;
-ServerDuplexStreamImpl.prototype._read =
-    ServerReadableStreamImpl.prototype._read;
-ServerDuplexStreamImpl.prototype._write =
-    ServerWritableStreamImpl.prototype._write;
-ServerDuplexStreamImpl.prototype._final =
-    ServerWritableStreamImpl.prototype._final;
-// Internal class that wraps the HTTP2 request.
-class Http2ServerCallStream extends events_1.EventEmitter {
-    constructor(stream, handler, options) {
-        super();
-        this.stream = stream;
-        this.handler = handler;
-        this.cancelled = false;
-        this.deadlineTimer = null;
-        this.statusSent = false;
-        this.deadline = Infinity;
-        this.wantTrailers = false;
-        this.metadataSent = false;
-        this.canPush = false;
-        this.isPushPending = false;
-        this.bufferedMessages = [];
-        this.messagesToPush = [];
-        this.maxSendMessageSize = constants_1$1.DEFAULT_MAX_SEND_MESSAGE_LENGTH;
-        this.maxReceiveMessageSize = constants_1$1.DEFAULT_MAX_RECEIVE_MESSAGE_LENGTH;
-        this.stream.once('error', (err) => {
-            /* We need an error handler to avoid uncaught error event exceptions, but
-             * there is nothing we can reasonably do here. Any error event should
-             * have a corresponding close event, which handles emitting the cancelled
-             * event. And the stream is now in a bad state, so we can't reasonably
-             * expect to be able to send an error over it. */
-        });
-        this.stream.once('close', () => {
-            var _a;
-            trace('Request to method ' +
-                ((_a = this.handler) === null || _a === void 0 ? void 0 : _a.path) +
-                ' stream closed with rstCode ' +
-                this.stream.rstCode);
-            if (!this.statusSent) {
-                this.cancelled = true;
-                this.emit('cancelled', 'cancelled');
-                this.emit('streamEnd', false);
-                this.sendStatus({
-                    code: constants_1$1.Status.CANCELLED,
-                    details: 'Cancelled by client',
-                    metadata: null,
-                });
-                if (this.deadlineTimer)
-                    clearTimeout(this.deadlineTimer);
-            }
-        });
-        this.stream.on('drain', () => {
-            this.emit('drain');
-        });
-        if ('grpc.max_send_message_length' in options) {
-            this.maxSendMessageSize = options['grpc.max_send_message_length'];
-        }
-        if ('grpc.max_receive_message_length' in options) {
-            this.maxReceiveMessageSize = options['grpc.max_receive_message_length'];
-        }
-    }
-    checkCancelled() {
-        /* In some cases the stream can become destroyed before the close event
-         * fires. That creates a race condition that this check works around */
-        if (this.stream.destroyed || this.stream.closed) {
-            this.cancelled = true;
-        }
-        return this.cancelled;
-    }
-    getDecompressedMessage(message, encoding) {
-        if (encoding === 'deflate') {
-            return inflate(message.subarray(5));
-        }
-        else if (encoding === 'gzip') {
-            return unzip(message.subarray(5));
-        }
-        else if (encoding === 'identity') {
-            return message.subarray(5);
-        }
-        return Promise.reject({
-            code: constants_1$1.Status.UNIMPLEMENTED,
-            details: `Received message compressed with unsupported encoding "${encoding}"`,
-        });
-    }
-    sendMetadata(customMetadata) {
-        if (this.checkCancelled()) {
-            return;
-        }
-        if (this.metadataSent) {
-            return;
-        }
-        this.metadataSent = true;
-        const custom = customMetadata ? customMetadata.toHttp2Headers() : null;
-        // TODO(cjihrig): Include compression headers.
-        const headers = Object.assign(Object.assign(Object.assign({}, defaultResponseHeaders), defaultCompressionHeaders), custom);
-        this.stream.respond(headers, defaultResponseOptions);
-    }
-    receiveMetadata(headers) {
-        const metadata = metadata_1.Metadata.fromHttp2Headers(headers);
-        if (logging$1.isTracerEnabled(TRACER_NAME$1)) {
-            trace('Request to ' +
-                this.handler.path +
-                ' received headers ' +
-                JSON.stringify(metadata.toJSON()));
-        }
-        // TODO(cjihrig): Receive compression metadata.
-        const timeoutHeader = metadata.get(GRPC_TIMEOUT_HEADER);
-        if (timeoutHeader.length > 0) {
-            const match = timeoutHeader[0].toString().match(DEADLINE_REGEX);
-            if (match === null) {
-                const err = new Error('Invalid deadline');
-                err.code = constants_1$1.Status.OUT_OF_RANGE;
-                this.sendError(err);
-                return metadata;
-            }
-            const timeout = (+match[1] * deadlineUnitsToMs[match[2]]) | 0;
-            const now = new Date();
-            this.deadline = now.setMilliseconds(now.getMilliseconds() + timeout);
-            this.deadlineTimer = setTimeout(handleExpiredDeadline, timeout, this);
-            metadata.remove(GRPC_TIMEOUT_HEADER);
-        }
-        // Remove several headers that should not be propagated to the application
-        metadata.remove(http2$1.constants.HTTP2_HEADER_ACCEPT_ENCODING);
-        metadata.remove(http2$1.constants.HTTP2_HEADER_TE);
-        metadata.remove(http2$1.constants.HTTP2_HEADER_CONTENT_TYPE);
-        metadata.remove('grpc-accept-encoding');
-        return metadata;
-    }
-    receiveUnaryMessage(encoding) {
-        return new Promise((resolve, reject) => {
-            const { stream } = this;
-            let receivedLength = 0;
-            // eslint-disable-next-line @typescript-eslint/no-this-alias
-            const call = this;
-            const body = [];
-            const limit = this.maxReceiveMessageSize;
-            this.stream.on('data', onData);
-            this.stream.on('end', onEnd);
-            this.stream.on('error', onEnd);
-            function onData(chunk) {
-                receivedLength += chunk.byteLength;
-                if (limit !== -1 && receivedLength > limit) {
-                    stream.removeListener('data', onData);
-                    stream.removeListener('end', onEnd);
-                    stream.removeListener('error', onEnd);
-                    reject({
-                        code: constants_1$1.Status.RESOURCE_EXHAUSTED,
-                        details: `Received message larger than max (${receivedLength} vs. ${limit})`,
-                    });
-                    return;
-                }
-                body.push(chunk);
-            }
-            function onEnd(err) {
-                stream.removeListener('data', onData);
-                stream.removeListener('end', onEnd);
-                stream.removeListener('error', onEnd);
-                if (err !== undefined) {
-                    reject({ code: constants_1$1.Status.INTERNAL, details: err.message });
-                    return;
-                }
-                if (receivedLength === 0) {
-                    reject({
-                        code: constants_1$1.Status.INTERNAL,
-                        details: 'received empty unary message',
-                    });
-                    return;
-                }
-                call.emit('receiveMessage');
-                const requestBytes = Buffer.concat(body, receivedLength);
-                const compressed = requestBytes.readUInt8(0) === 1;
-                const compressedMessageEncoding = compressed ? encoding : 'identity';
-                const decompressedMessage = call.getDecompressedMessage(requestBytes, compressedMessageEncoding);
-                if (Buffer.isBuffer(decompressedMessage)) {
-                    resolve(call.deserializeMessageWithInternalError(decompressedMessage));
-                    return;
-                }
-                decompressedMessage.then(decompressed => resolve(call.deserializeMessageWithInternalError(decompressed)), (err) => reject(err.code
-                    ? err
-                    : {
-                        code: constants_1$1.Status.INTERNAL,
-                        details: `Received "grpc-encoding" header "${encoding}" but ${encoding} decompression failed`,
-                    }));
-            }
-        });
-    }
-    async deserializeMessageWithInternalError(buffer) {
-        try {
-            return this.deserializeMessage(buffer);
-        }
-        catch (err) {
-            throw {
-                details: (0, error_1.getErrorMessage)(err),
-                code: constants_1$1.Status.INTERNAL,
-            };
-        }
-    }
-    serializeMessage(value) {
-        const messageBuffer = this.handler.serialize(value);
-        // TODO(cjihrig): Call compression aware serializeMessage().
-        const byteLength = messageBuffer.byteLength;
-        const output = Buffer.allocUnsafe(byteLength + 5);
-        output.writeUInt8(0, 0);
-        output.writeUInt32BE(byteLength, 1);
-        messageBuffer.copy(output, 5);
-        return output;
-    }
-    deserializeMessage(bytes) {
-        return this.handler.deserialize(bytes);
-    }
-    async sendUnaryMessage(err, value, metadata, flags) {
-        if (this.checkCancelled()) {
-            return;
-        }
-        if (metadata === undefined) {
-            metadata = null;
-        }
-        if (err) {
-            if (!Object.prototype.hasOwnProperty.call(err, 'metadata') && metadata) {
-                err.metadata = metadata;
-            }
-            this.sendError(err);
-            return;
-        }
-        try {
-            const response = this.serializeMessage(value);
-            this.write(response);
-            this.sendStatus({ code: constants_1$1.Status.OK, details: 'OK', metadata });
-        }
-        catch (err) {
-            this.sendError({
-                details: (0, error_1.getErrorMessage)(err),
-                code: constants_1$1.Status.INTERNAL,
-            });
-        }
-    }
-    sendStatus(statusObj) {
-        var _a, _b;
-        this.emit('callEnd', statusObj.code);
-        this.emit('streamEnd', statusObj.code === constants_1$1.Status.OK);
-        if (this.checkCancelled()) {
-            return;
-        }
-        trace('Request to method ' +
-            ((_a = this.handler) === null || _a === void 0 ? void 0 : _a.path) +
-            ' ended with status code: ' +
-            constants_1$1.Status[statusObj.code] +
-            ' details: ' +
-            statusObj.details);
-        if (this.deadlineTimer)
-            clearTimeout(this.deadlineTimer);
-        if (this.stream.headersSent) {
-            if (!this.wantTrailers) {
-                this.wantTrailers = true;
-                this.stream.once('wantTrailers', () => {
-                    var _a;
-                    const trailersToSend = Object.assign({ [GRPC_STATUS_HEADER]: statusObj.code, [GRPC_MESSAGE_HEADER]: encodeURI(statusObj.details) }, (_a = statusObj.metadata) === null || _a === void 0 ? void 0 : _a.toHttp2Headers());
-                    this.stream.sendTrailers(trailersToSend);
-                    this.statusSent = true;
-                });
-                this.stream.end();
-            }
-        }
-        else {
-            // Trailers-only response
-            const trailersToSend = Object.assign(Object.assign({ [GRPC_STATUS_HEADER]: statusObj.code, [GRPC_MESSAGE_HEADER]: encodeURI(statusObj.details) }, defaultResponseHeaders), (_b = statusObj.metadata) === null || _b === void 0 ? void 0 : _b.toHttp2Headers());
-            this.stream.respond(trailersToSend, { endStream: true });
-            this.statusSent = true;
-        }
-    }
-    sendError(error) {
-        const status = {
-            code: constants_1$1.Status.UNKNOWN,
-            details: 'message' in error ? error.message : 'Unknown Error',
-            metadata: 'metadata' in error && error.metadata !== undefined
-                ? error.metadata
-                : null,
-        };
-        if ('code' in error &&
-            typeof error.code === 'number' &&
-            Number.isInteger(error.code)) {
-            status.code = error.code;
-            if ('details' in error && typeof error.details === 'string') {
-                status.details = error.details;
-            }
-        }
-        this.sendStatus(status);
-    }
-    write(chunk) {
-        if (this.checkCancelled()) {
-            return;
-        }
-        if (this.maxSendMessageSize !== -1 &&
-            chunk.length > this.maxSendMessageSize) {
-            this.sendError({
-                code: constants_1$1.Status.RESOURCE_EXHAUSTED,
-                details: `Sent message larger than max (${chunk.length} vs. ${this.maxSendMessageSize})`,
-            });
-            return;
-        }
-        this.sendMetadata();
-        this.emit('sendMessage');
-        return this.stream.write(chunk);
-    }
-    resume() {
-        this.stream.resume();
-    }
-    setupSurfaceCall(call) {
-        this.once('cancelled', reason => {
-            call.cancelled = true;
-            call.emit('cancelled', reason);
-        });
-        this.once('callEnd', status => call.emit('callEnd', status));
-    }
-    setupReadable(readable, encoding) {
-        const decoder = new stream_decoder_1.StreamDecoder();
-        let readsDone = false;
-        let pendingMessageProcessing = false;
-        let pushedEnd = false;
-        const maybePushEnd = async () => {
-            if (!pushedEnd && readsDone && !pendingMessageProcessing) {
-                pushedEnd = true;
-                await this.pushOrBufferMessage(readable, null);
-            }
-        };
-        this.stream.on('data', async (data) => {
-            const messages = decoder.write(data);
-            pendingMessageProcessing = true;
-            this.stream.pause();
-            for (const message of messages) {
-                if (this.maxReceiveMessageSize !== -1 &&
-                    message.length > this.maxReceiveMessageSize) {
-                    this.sendError({
-                        code: constants_1$1.Status.RESOURCE_EXHAUSTED,
-                        details: `Received message larger than max (${message.length} vs. ${this.maxReceiveMessageSize})`,
-                    });
-                    return;
-                }
-                this.emit('receiveMessage');
-                const compressed = message.readUInt8(0) === 1;
-                const compressedMessageEncoding = compressed ? encoding : 'identity';
-                const decompressedMessage = await this.getDecompressedMessage(message, compressedMessageEncoding);
-                // Encountered an error with decompression; it'll already have been propogated back
-                // Just return early
-                if (!decompressedMessage)
-                    return;
-                await this.pushOrBufferMessage(readable, decompressedMessage);
-            }
-            pendingMessageProcessing = false;
-            this.stream.resume();
-            await maybePushEnd();
-        });
-        this.stream.once('end', async () => {
-            readsDone = true;
-            await maybePushEnd();
-        });
-    }
-    consumeUnpushedMessages(readable) {
-        this.canPush = true;
-        while (this.messagesToPush.length > 0) {
-            const nextMessage = this.messagesToPush.shift();
-            const canPush = readable.push(nextMessage);
-            if (nextMessage === null || canPush === false) {
-                this.canPush = false;
-                break;
-            }
-        }
-        return this.canPush;
-    }
-    async pushOrBufferMessage(readable, messageBytes) {
-        if (this.isPushPending) {
-            this.bufferedMessages.push(messageBytes);
-        }
-        else {
-            await this.pushMessage(readable, messageBytes);
-        }
-    }
-    async pushMessage(readable, messageBytes) {
-        if (messageBytes === null) {
-            trace('Received end of stream');
-            if (this.canPush) {
-                readable.push(null);
-            }
-            else {
-                this.messagesToPush.push(null);
-            }
-            return;
-        }
-        trace('Received message of length ' + messageBytes.length);
-        this.isPushPending = true;
-        try {
-            const deserialized = await this.deserializeMessage(messageBytes);
-            if (this.canPush) {
-                if (!readable.push(deserialized)) {
-                    this.canPush = false;
-                    this.stream.pause();
-                }
-            }
-            else {
-                this.messagesToPush.push(deserialized);
-            }
-        }
-        catch (error) {
-            // Ignore any remaining messages when errors occur.
-            this.bufferedMessages.length = 0;
-            let code = (0, error_1.getErrorCode)(error);
-            if (code === null || code < constants_1$1.Status.OK || code > constants_1$1.Status.UNAUTHENTICATED) {
-                code = constants_1$1.Status.INTERNAL;
-            }
-            readable.emit('error', {
-                details: (0, error_1.getErrorMessage)(error),
-                code: code,
-            });
-        }
-        this.isPushPending = false;
-        if (this.bufferedMessages.length > 0) {
-            await this.pushMessage(readable, this.bufferedMessages.shift());
-        }
-    }
-    getPeer() {
-        var _a;
-        const socket = (_a = this.stream.session) === null || _a === void 0 ? void 0 : _a.socket;
-        if (socket === null || socket === void 0 ? void 0 : socket.remoteAddress) {
-            if (socket.remotePort) {
-                return `${socket.remoteAddress}:${socket.remotePort}`;
-            }
-            else {
-                return socket.remoteAddress;
-            }
-        }
-        else {
-            return 'unknown';
-        }
-    }
-    getDeadline() {
-        return this.deadline;
-    }
-    getPath() {
-        return this.handler.path;
-    }
-}
-serverCall.Http2ServerCallStream = Http2ServerCallStream;
-function handleExpiredDeadline(call) {
-    const err = new Error('Deadline exceeded');
-    err.code = constants_1$1.Status.DEADLINE_EXCEEDED;
-    call.sendError(err);
-    call.cancelled = true;
-    call.emit('cancelled', 'deadline');
-}
 
 var serverCredentials = {};
 
@@ -28325,6 +28103,7 @@ class ServerCredentials {
         return new InsecureServerCredentials();
     }
     static createSsl(rootCerts, keyCertPairs, checkClientCertificate = false) {
+        var _a;
         if (rootCerts !== null && !Buffer.isBuffer(rootCerts)) {
             throw new TypeError('rootCerts must be null or a Buffer');
         }
@@ -28351,7 +28130,7 @@ class ServerCredentials {
             key.push(pair.private_key);
         }
         return new SecureServerCredentials({
-            ca: rootCerts || (0, tls_helpers_1.getDefaultRootsData)() || undefined,
+            ca: (_a = rootCerts !== null && rootCerts !== void 0 ? rootCerts : (0, tls_helpers_1.getDefaultRootsData)()) !== null && _a !== void 0 ? _a : undefined,
             cert,
             key,
             requestCert: checkClientCertificate,
@@ -28367,6 +28146,9 @@ class InsecureServerCredentials extends ServerCredentials {
     _getSettings() {
         return null;
     }
+    _equals(other) {
+        return other instanceof InsecureServerCredentials;
+    }
 }
 class SecureServerCredentials extends ServerCredentials {
     constructor(options) {
@@ -28379,6 +28161,802 @@ class SecureServerCredentials extends ServerCredentials {
     _getSettings() {
         return this.options;
     }
+    /**
+     * Checks equality by checking the options that are actually set by
+     * createSsl.
+     * @param other
+     * @returns
+     */
+    _equals(other) {
+        if (this === other) {
+            return true;
+        }
+        if (!(other instanceof SecureServerCredentials)) {
+            return false;
+        }
+        // options.ca equality check
+        if (Buffer.isBuffer(this.options.ca) && Buffer.isBuffer(other.options.ca)) {
+            if (!this.options.ca.equals(other.options.ca)) {
+                return false;
+            }
+        }
+        else {
+            if (this.options.ca !== other.options.ca) {
+                return false;
+            }
+        }
+        // options.cert equality check
+        if (Array.isArray(this.options.cert) && Array.isArray(other.options.cert)) {
+            if (this.options.cert.length !== other.options.cert.length) {
+                return false;
+            }
+            for (let i = 0; i < this.options.cert.length; i++) {
+                const thisCert = this.options.cert[i];
+                const otherCert = other.options.cert[i];
+                if (Buffer.isBuffer(thisCert) && Buffer.isBuffer(otherCert)) {
+                    if (!thisCert.equals(otherCert)) {
+                        return false;
+                    }
+                }
+                else {
+                    if (thisCert !== otherCert) {
+                        return false;
+                    }
+                }
+            }
+        }
+        else {
+            if (this.options.cert !== other.options.cert) {
+                return false;
+            }
+        }
+        // options.key equality check
+        if (Array.isArray(this.options.key) && Array.isArray(other.options.key)) {
+            if (this.options.key.length !== other.options.key.length) {
+                return false;
+            }
+            for (let i = 0; i < this.options.key.length; i++) {
+                const thisKey = this.options.key[i];
+                const otherKey = other.options.key[i];
+                if (Buffer.isBuffer(thisKey) && Buffer.isBuffer(otherKey)) {
+                    if (!thisKey.equals(otherKey)) {
+                        return false;
+                    }
+                }
+                else {
+                    if (thisKey !== otherKey) {
+                        return false;
+                    }
+                }
+            }
+        }
+        else {
+            if (this.options.key !== other.options.key) {
+                return false;
+            }
+        }
+        // options.requestCert equality check
+        if (this.options.requestCert !== other.options.requestCert) {
+            return false;
+        }
+        /* ciphers is derived from a value that is constant for the process, so no
+         * equality check is needed. */
+        return true;
+    }
+}
+
+var serverInterceptors = {};
+
+var hasRequiredServerInterceptors;
+
+function requireServerInterceptors () {
+	if (hasRequiredServerInterceptors) return serverInterceptors;
+	hasRequiredServerInterceptors = 1;
+	/*
+	 * Copyright 2024 gRPC authors.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 *     http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 */
+	Object.defineProperty(serverInterceptors, "__esModule", { value: true });
+	serverInterceptors.getServerInterceptingCall = serverInterceptors.BaseServerInterceptingCall = serverInterceptors.ServerInterceptingCall = serverInterceptors.ResponderBuilder = serverInterceptors.isInterceptingServerListener = serverInterceptors.ServerListenerBuilder = void 0;
+	const metadata_1 = metadata;
+	const constants_1 = constants;
+	const http2 = require$$0$5;
+	const error_1 = error;
+	const zlib = require$$0$6;
+	const util_1 = require$$2;
+	const stream_decoder_1 = requireStreamDecoder();
+	const logging = logging$8;
+	const unzip = (0, util_1.promisify)(zlib.unzip);
+	const inflate = (0, util_1.promisify)(zlib.inflate);
+	const TRACER_NAME = 'server_call';
+	function trace(text) {
+	    logging.trace(constants_1.LogVerbosity.DEBUG, TRACER_NAME, text);
+	}
+	class ServerListenerBuilder {
+	    constructor() {
+	        this.metadata = undefined;
+	        this.message = undefined;
+	        this.halfClose = undefined;
+	        this.cancel = undefined;
+	    }
+	    withOnReceiveMetadata(onReceiveMetadata) {
+	        this.metadata = onReceiveMetadata;
+	        return this;
+	    }
+	    withOnReceiveMessage(onReceiveMessage) {
+	        this.message = onReceiveMessage;
+	        return this;
+	    }
+	    withOnReceiveHalfClose(onReceiveHalfClose) {
+	        this.halfClose = onReceiveHalfClose;
+	        return this;
+	    }
+	    withOnCancel(onCancel) {
+	        this.cancel = onCancel;
+	        return this;
+	    }
+	    build() {
+	        return {
+	            onReceiveMetadata: this.metadata,
+	            onReceiveMessage: this.message,
+	            onReceiveHalfClose: this.halfClose,
+	            onCancel: this.cancel
+	        };
+	    }
+	}
+	serverInterceptors.ServerListenerBuilder = ServerListenerBuilder;
+	function isInterceptingServerListener(listener) {
+	    return listener.onReceiveMetadata !== undefined && listener.onReceiveMetadata.length === 1;
+	}
+	serverInterceptors.isInterceptingServerListener = isInterceptingServerListener;
+	class InterceptingServerListenerImpl {
+	    constructor(listener, nextListener) {
+	        this.listener = listener;
+	        this.nextListener = nextListener;
+	        /**
+	         * Once the call is cancelled, ignore all other events.
+	         */
+	        this.cancelled = false;
+	        this.processingMetadata = false;
+	        this.hasPendingMessage = false;
+	        this.pendingMessage = null;
+	        this.processingMessage = false;
+	        this.hasPendingHalfClose = false;
+	    }
+	    processPendingMessage() {
+	        if (this.hasPendingMessage) {
+	            this.nextListener.onReceiveMessage(this.pendingMessage);
+	            this.pendingMessage = null;
+	            this.hasPendingMessage = false;
+	        }
+	    }
+	    processPendingHalfClose() {
+	        if (this.hasPendingHalfClose) {
+	            this.nextListener.onReceiveHalfClose();
+	            this.hasPendingHalfClose = false;
+	        }
+	    }
+	    onReceiveMetadata(metadata) {
+	        if (this.cancelled) {
+	            return;
+	        }
+	        this.processingMetadata = true;
+	        this.listener.onReceiveMetadata(metadata, interceptedMetadata => {
+	            this.processingMetadata = false;
+	            if (this.cancelled) {
+	                return;
+	            }
+	            this.nextListener.onReceiveMetadata(interceptedMetadata);
+	            this.processPendingMessage();
+	            this.processPendingHalfClose();
+	        });
+	    }
+	    onReceiveMessage(message) {
+	        if (this.cancelled) {
+	            return;
+	        }
+	        this.processingMessage = true;
+	        this.listener.onReceiveMessage(message, msg => {
+	            this.processingMessage = false;
+	            if (this.cancelled) {
+	                return;
+	            }
+	            if (this.processingMetadata) {
+	                this.pendingMessage = msg;
+	                this.hasPendingMessage = true;
+	            }
+	            else {
+	                this.nextListener.onReceiveMessage(msg);
+	                this.processPendingHalfClose();
+	            }
+	        });
+	    }
+	    onReceiveHalfClose() {
+	        if (this.cancelled) {
+	            return;
+	        }
+	        this.listener.onReceiveHalfClose(() => {
+	            if (this.cancelled) {
+	                return;
+	            }
+	            if (this.processingMetadata || this.processingMessage) {
+	                this.hasPendingHalfClose = true;
+	            }
+	            else {
+	                this.nextListener.onReceiveHalfClose();
+	            }
+	        });
+	    }
+	    onCancel() {
+	        this.cancelled = true;
+	        this.listener.onCancel();
+	        this.nextListener.onCancel();
+	    }
+	}
+	class ResponderBuilder {
+	    constructor() {
+	        this.start = undefined;
+	        this.metadata = undefined;
+	        this.message = undefined;
+	        this.status = undefined;
+	    }
+	    withStart(start) {
+	        this.start = start;
+	        return this;
+	    }
+	    withSendMetadata(sendMetadata) {
+	        this.metadata = sendMetadata;
+	        return this;
+	    }
+	    withSendMessage(sendMessage) {
+	        this.message = sendMessage;
+	        return this;
+	    }
+	    withSendStatus(sendStatus) {
+	        this.status = sendStatus;
+	        return this;
+	    }
+	    build() {
+	        return {
+	            start: this.start,
+	            sendMetadata: this.metadata,
+	            sendMessage: this.message,
+	            sendStatus: this.status
+	        };
+	    }
+	}
+	serverInterceptors.ResponderBuilder = ResponderBuilder;
+	const defaultServerListener = {
+	    onReceiveMetadata: (metadata, next) => {
+	        next(metadata);
+	    },
+	    onReceiveMessage: (message, next) => {
+	        next(message);
+	    },
+	    onReceiveHalfClose: next => {
+	        next();
+	    },
+	    onCancel: () => { }
+	};
+	const defaultResponder = {
+	    start: (next) => {
+	        next();
+	    },
+	    sendMetadata: (metadata, next) => {
+	        next(metadata);
+	    },
+	    sendMessage: (message, next) => {
+	        next(message);
+	    },
+	    sendStatus: (status, next) => {
+	        next(status);
+	    }
+	};
+	class ServerInterceptingCall {
+	    constructor(nextCall, responder) {
+	        this.nextCall = nextCall;
+	        this.processingMetadata = false;
+	        this.processingMessage = false;
+	        this.pendingMessage = null;
+	        this.pendingMessageCallback = null;
+	        this.pendingStatus = null;
+	        this.responder = Object.assign(Object.assign({}, defaultResponder), responder);
+	    }
+	    processPendingMessage() {
+	        if (this.pendingMessageCallback) {
+	            this.nextCall.sendMessage(this.pendingMessage, this.pendingMessageCallback);
+	            this.pendingMessage = null;
+	            this.pendingMessageCallback = null;
+	        }
+	    }
+	    processPendingStatus() {
+	        if (this.pendingStatus) {
+	            this.nextCall.sendStatus(this.pendingStatus);
+	            this.pendingStatus = null;
+	        }
+	    }
+	    start(listener) {
+	        this.responder.start(interceptedListener => {
+	            const fullInterceptedListener = Object.assign(Object.assign({}, defaultServerListener), interceptedListener);
+	            const finalInterceptingListener = new InterceptingServerListenerImpl(fullInterceptedListener, listener);
+	            this.nextCall.start(finalInterceptingListener);
+	        });
+	    }
+	    sendMetadata(metadata) {
+	        this.processingMetadata = true;
+	        this.responder.sendMetadata(metadata, interceptedMetadata => {
+	            this.processingMetadata = false;
+	            this.nextCall.sendMetadata(interceptedMetadata);
+	            this.processPendingMessage();
+	            this.processPendingStatus();
+	        });
+	    }
+	    sendMessage(message, callback) {
+	        this.processingMessage = true;
+	        this.responder.sendMessage(message, interceptedMessage => {
+	            this.processingMessage = false;
+	            if (this.processingMetadata) {
+	                this.pendingMessage = interceptedMessage;
+	                this.pendingMessageCallback = callback;
+	            }
+	            else {
+	                this.nextCall.sendMessage(interceptedMessage, callback);
+	            }
+	        });
+	    }
+	    sendStatus(status) {
+	        this.responder.sendStatus(status, interceptedStatus => {
+	            if (this.processingMetadata || this.processingMessage) {
+	                this.pendingStatus = interceptedStatus;
+	            }
+	            else {
+	                this.nextCall.sendStatus(interceptedStatus);
+	            }
+	        });
+	    }
+	    startRead() {
+	        this.nextCall.startRead();
+	    }
+	    getPeer() {
+	        return this.nextCall.getPeer();
+	    }
+	    getDeadline() {
+	        return this.nextCall.getDeadline();
+	    }
+	}
+	serverInterceptors.ServerInterceptingCall = ServerInterceptingCall;
+	const GRPC_ACCEPT_ENCODING_HEADER = 'grpc-accept-encoding';
+	const GRPC_ENCODING_HEADER = 'grpc-encoding';
+	const GRPC_MESSAGE_HEADER = 'grpc-message';
+	const GRPC_STATUS_HEADER = 'grpc-status';
+	const GRPC_TIMEOUT_HEADER = 'grpc-timeout';
+	const DEADLINE_REGEX = /(\d{1,8})\s*([HMSmun])/;
+	const deadlineUnitsToMs = {
+	    H: 3600000,
+	    M: 60000,
+	    S: 1000,
+	    m: 1,
+	    u: 0.001,
+	    n: 0.000001,
+	};
+	const defaultCompressionHeaders = {
+	    // TODO(cjihrig): Remove these encoding headers from the default response
+	    // once compression is integrated.
+	    [GRPC_ACCEPT_ENCODING_HEADER]: 'identity,deflate,gzip',
+	    [GRPC_ENCODING_HEADER]: 'identity',
+	};
+	const defaultResponseHeaders = {
+	    [http2.constants.HTTP2_HEADER_STATUS]: http2.constants.HTTP_STATUS_OK,
+	    [http2.constants.HTTP2_HEADER_CONTENT_TYPE]: 'application/grpc+proto',
+	};
+	const defaultResponseOptions = {
+	    waitForTrailers: true,
+	};
+	class BaseServerInterceptingCall {
+	    constructor(stream, headers, callEventTracker, handler, options) {
+	        this.stream = stream;
+	        this.callEventTracker = callEventTracker;
+	        this.handler = handler;
+	        this.listener = null;
+	        this.deadlineTimer = null;
+	        this.deadline = Infinity;
+	        this.maxSendMessageSize = constants_1.DEFAULT_MAX_SEND_MESSAGE_LENGTH;
+	        this.maxReceiveMessageSize = constants_1.DEFAULT_MAX_RECEIVE_MESSAGE_LENGTH;
+	        this.cancelled = false;
+	        this.metadataSent = false;
+	        this.wantTrailers = false;
+	        this.cancelNotified = false;
+	        this.incomingEncoding = 'identity';
+	        this.decoder = new stream_decoder_1.StreamDecoder();
+	        this.readQueue = [];
+	        this.isReadPending = false;
+	        this.receivedHalfClose = false;
+	        this.streamEnded = false;
+	        this.stream.once('error', (err) => {
+	            /* We need an error handler to avoid uncaught error event exceptions, but
+	             * there is nothing we can reasonably do here. Any error event should
+	             * have a corresponding close event, which handles emitting the cancelled
+	             * event. And the stream is now in a bad state, so we can't reasonably
+	             * expect to be able to send an error over it. */
+	        });
+	        this.stream.once('close', () => {
+	            var _a;
+	            trace('Request to method ' +
+	                ((_a = this.handler) === null || _a === void 0 ? void 0 : _a.path) +
+	                ' stream closed with rstCode ' +
+	                this.stream.rstCode);
+	            if (this.callEventTracker && !this.streamEnded) {
+	                this.streamEnded = true;
+	                this.callEventTracker.onStreamEnd(false);
+	                this.callEventTracker.onCallEnd({
+	                    code: constants_1.Status.CANCELLED,
+	                    details: 'Stream closed before sending status',
+	                    metadata: null
+	                });
+	            }
+	            this.notifyOnCancel();
+	        });
+	        this.stream.on('data', (data) => {
+	            this.handleDataFrame(data);
+	        });
+	        this.stream.pause();
+	        this.stream.on('end', () => {
+	            this.handleEndEvent();
+	        });
+	        if ('grpc.max_send_message_length' in options) {
+	            this.maxSendMessageSize = options['grpc.max_send_message_length'];
+	        }
+	        if ('grpc.max_receive_message_length' in options) {
+	            this.maxReceiveMessageSize = options['grpc.max_receive_message_length'];
+	        }
+	        const metadata = metadata_1.Metadata.fromHttp2Headers(headers);
+	        if (logging.isTracerEnabled(TRACER_NAME)) {
+	            trace('Request to ' +
+	                this.handler.path +
+	                ' received headers ' +
+	                JSON.stringify(metadata.toJSON()));
+	        }
+	        const timeoutHeader = metadata.get(GRPC_TIMEOUT_HEADER);
+	        if (timeoutHeader.length > 0) {
+	            this.handleTimeoutHeader(timeoutHeader[0]);
+	        }
+	        const encodingHeader = metadata.get(GRPC_ENCODING_HEADER);
+	        if (encodingHeader.length > 0) {
+	            this.incomingEncoding = encodingHeader[0];
+	        }
+	        // Remove several headers that should not be propagated to the application
+	        metadata.remove(GRPC_TIMEOUT_HEADER);
+	        metadata.remove(GRPC_ENCODING_HEADER);
+	        metadata.remove(GRPC_ACCEPT_ENCODING_HEADER);
+	        metadata.remove(http2.constants.HTTP2_HEADER_ACCEPT_ENCODING);
+	        metadata.remove(http2.constants.HTTP2_HEADER_TE);
+	        metadata.remove(http2.constants.HTTP2_HEADER_CONTENT_TYPE);
+	        this.metadata = metadata;
+	    }
+	    handleTimeoutHeader(timeoutHeader) {
+	        const match = timeoutHeader.toString().match(DEADLINE_REGEX);
+	        if (match === null) {
+	            const status = {
+	                code: constants_1.Status.INTERNAL,
+	                details: `Invalid ${GRPC_TIMEOUT_HEADER} value "${timeoutHeader}"`,
+	                metadata: null
+	            };
+	            // Wait for the constructor to complete before sending the error.
+	            process.nextTick(() => {
+	                this.sendStatus(status);
+	            });
+	            return;
+	        }
+	        const timeout = (+match[1] * deadlineUnitsToMs[match[2]]) | 0;
+	        const now = new Date();
+	        this.deadline = now.setMilliseconds(now.getMilliseconds() + timeout);
+	        this.deadlineTimer = setTimeout(() => {
+	            const status = {
+	                code: constants_1.Status.DEADLINE_EXCEEDED,
+	                details: 'Deadline exceeded',
+	                metadata: null
+	            };
+	            this.sendStatus(status);
+	        }, timeout);
+	    }
+	    checkCancelled() {
+	        /* In some cases the stream can become destroyed before the close event
+	         * fires. That creates a race condition that this check works around */
+	        if (!this.cancelled && (this.stream.destroyed || this.stream.closed)) {
+	            this.notifyOnCancel();
+	            this.cancelled = true;
+	        }
+	        return this.cancelled;
+	    }
+	    notifyOnCancel() {
+	        if (this.cancelNotified) {
+	            return;
+	        }
+	        this.cancelNotified = true;
+	        this.cancelled = true;
+	        process.nextTick(() => {
+	            var _a;
+	            (_a = this.listener) === null || _a === void 0 ? void 0 : _a.onCancel();
+	        });
+	        if (this.deadlineTimer) {
+	            clearTimeout(this.deadlineTimer);
+	        }
+	        // Flush incoming data frames
+	        this.stream.resume();
+	    }
+	    /**
+	     * A server handler can start sending messages without explicitly sending
+	     * metadata. In that case, we need to send headers before sending any
+	     * messages. This function does that if necessary.
+	     */
+	    maybeSendMetadata() {
+	        if (!this.metadataSent) {
+	            this.sendMetadata(new metadata_1.Metadata());
+	        }
+	    }
+	    /**
+	     * Serialize a message to a length-delimited byte string.
+	     * @param value
+	     * @returns
+	     */
+	    serializeMessage(value) {
+	        const messageBuffer = this.handler.serialize(value);
+	        const byteLength = messageBuffer.byteLength;
+	        const output = Buffer.allocUnsafe(byteLength + 5);
+	        /* Note: response compression is currently not supported, so this
+	         * compressed bit is always 0. */
+	        output.writeUInt8(0, 0);
+	        output.writeUInt32BE(byteLength, 1);
+	        messageBuffer.copy(output, 5);
+	        return output;
+	    }
+	    decompressMessage(message, encoding) {
+	        switch (encoding) {
+	            case 'deflate':
+	                return inflate(message.subarray(5));
+	            case 'gzip':
+	                return unzip(message.subarray(5));
+	            case 'identity':
+	                return message.subarray(5);
+	            default:
+	                return Promise.reject({
+	                    code: constants_1.Status.UNIMPLEMENTED,
+	                    details: `Received message compressed with unsupported encoding "${encoding}"`,
+	                });
+	        }
+	    }
+	    async decompressAndMaybePush(queueEntry) {
+	        if (queueEntry.type !== 'COMPRESSED') {
+	            throw new Error(`Invalid queue entry type: ${queueEntry.type}`);
+	        }
+	        const compressed = queueEntry.compressedMessage.readUInt8(0) === 1;
+	        const compressedMessageEncoding = compressed ? this.incomingEncoding : 'identity';
+	        const decompressedMessage = await this.decompressMessage(queueEntry.compressedMessage, compressedMessageEncoding);
+	        try {
+	            queueEntry.parsedMessage = this.handler.deserialize(decompressedMessage);
+	        }
+	        catch (err) {
+	            this.sendStatus({
+	                code: constants_1.Status.INTERNAL,
+	                details: `Error deserializing request: ${err.message}`
+	            });
+	            return;
+	        }
+	        queueEntry.type = 'READABLE';
+	        this.maybePushNextMessage();
+	    }
+	    maybePushNextMessage() {
+	        if (this.listener && this.isReadPending && this.readQueue.length > 0 && this.readQueue[0].type !== 'COMPRESSED') {
+	            this.isReadPending = false;
+	            const nextQueueEntry = this.readQueue.shift();
+	            if (nextQueueEntry.type === 'READABLE') {
+	                this.listener.onReceiveMessage(nextQueueEntry.parsedMessage);
+	            }
+	            else {
+	                // nextQueueEntry.type === 'HALF_CLOSE'
+	                this.listener.onReceiveHalfClose();
+	            }
+	        }
+	    }
+	    handleDataFrame(data) {
+	        var _a;
+	        if (this.checkCancelled()) {
+	            return;
+	        }
+	        trace('Request to ' + this.handler.path + ' received data frame of size ' + data.length);
+	        const rawMessages = this.decoder.write(data);
+	        for (const messageBytes of rawMessages) {
+	            this.stream.pause();
+	            if (this.maxReceiveMessageSize !== -1 && messageBytes.length - 5 > this.maxReceiveMessageSize) {
+	                this.sendStatus({
+	                    code: constants_1.Status.RESOURCE_EXHAUSTED,
+	                    details: `Received message larger than max (${messageBytes.length - 5} vs. ${this.maxReceiveMessageSize})`,
+	                    metadata: null
+	                });
+	                return;
+	            }
+	            const queueEntry = {
+	                type: 'COMPRESSED',
+	                compressedMessage: messageBytes,
+	                parsedMessage: null
+	            };
+	            this.readQueue.push(queueEntry);
+	            this.decompressAndMaybePush(queueEntry);
+	            (_a = this.callEventTracker) === null || _a === void 0 ? void 0 : _a.addMessageReceived();
+	        }
+	    }
+	    handleEndEvent() {
+	        this.readQueue.push({
+	            type: 'HALF_CLOSE',
+	            compressedMessage: null,
+	            parsedMessage: null
+	        });
+	        this.receivedHalfClose = true;
+	        this.maybePushNextMessage();
+	    }
+	    start(listener) {
+	        trace('Request to ' + this.handler.path + ' start called');
+	        if (this.checkCancelled()) {
+	            return;
+	        }
+	        this.listener = listener;
+	        listener.onReceiveMetadata(this.metadata);
+	    }
+	    sendMetadata(metadata) {
+	        if (this.checkCancelled()) {
+	            return;
+	        }
+	        if (this.metadataSent) {
+	            return;
+	        }
+	        this.metadataSent = true;
+	        const custom = metadata ? metadata.toHttp2Headers() : null;
+	        const headers = Object.assign(Object.assign(Object.assign({}, defaultResponseHeaders), defaultCompressionHeaders), custom);
+	        this.stream.respond(headers, defaultResponseOptions);
+	    }
+	    sendMessage(message, callback) {
+	        if (this.checkCancelled()) {
+	            return;
+	        }
+	        let response;
+	        try {
+	            response = this.serializeMessage(message);
+	        }
+	        catch (e) {
+	            this.sendStatus({
+	                code: constants_1.Status.INTERNAL,
+	                details: `Error serializing response: ${(0, error_1.getErrorMessage)(e)}`,
+	                metadata: null
+	            });
+	            return;
+	        }
+	        if (this.maxSendMessageSize !== -1 &&
+	            response.length - 5 > this.maxSendMessageSize) {
+	            this.sendStatus({
+	                code: constants_1.Status.RESOURCE_EXHAUSTED,
+	                details: `Sent message larger than max (${response.length} vs. ${this.maxSendMessageSize})`,
+	                metadata: null
+	            });
+	            return;
+	        }
+	        this.maybeSendMetadata();
+	        trace('Request to ' + this.handler.path + ' sent data frame of size ' + response.length);
+	        this.stream.write(response, error => {
+	            var _a;
+	            if (error) {
+	                this.sendStatus({
+	                    code: constants_1.Status.INTERNAL,
+	                    details: `Error writing message: ${(0, error_1.getErrorMessage)(error)}`,
+	                    metadata: null
+	                });
+	                return;
+	            }
+	            (_a = this.callEventTracker) === null || _a === void 0 ? void 0 : _a.addMessageSent();
+	            callback();
+	        });
+	    }
+	    sendStatus(status) {
+	        var _a, _b;
+	        if (this.checkCancelled()) {
+	            return;
+	        }
+	        this.notifyOnCancel();
+	        trace('Request to method ' +
+	            ((_a = this.handler) === null || _a === void 0 ? void 0 : _a.path) +
+	            ' ended with status code: ' +
+	            constants_1.Status[status.code] +
+	            ' details: ' +
+	            status.details);
+	        if (this.stream.headersSent) {
+	            if (!this.wantTrailers) {
+	                this.wantTrailers = true;
+	                this.stream.once('wantTrailers', () => {
+	                    var _a;
+	                    if (this.callEventTracker && !this.streamEnded) {
+	                        this.streamEnded = true;
+	                        this.callEventTracker.onStreamEnd(true);
+	                        this.callEventTracker.onCallEnd(status);
+	                    }
+	                    const trailersToSend = Object.assign({ [GRPC_STATUS_HEADER]: status.code, [GRPC_MESSAGE_HEADER]: encodeURI(status.details) }, (_a = status.metadata) === null || _a === void 0 ? void 0 : _a.toHttp2Headers());
+	                    this.stream.sendTrailers(trailersToSend);
+	                });
+	                this.stream.end();
+	            }
+	        }
+	        else {
+	            if (this.callEventTracker && !this.streamEnded) {
+	                this.streamEnded = true;
+	                this.callEventTracker.onStreamEnd(true);
+	                this.callEventTracker.onCallEnd(status);
+	            }
+	            // Trailers-only response
+	            const trailersToSend = Object.assign(Object.assign({ [GRPC_STATUS_HEADER]: status.code, [GRPC_MESSAGE_HEADER]: encodeURI(status.details) }, defaultResponseHeaders), (_b = status.metadata) === null || _b === void 0 ? void 0 : _b.toHttp2Headers());
+	            this.stream.respond(trailersToSend, { endStream: true });
+	        }
+	    }
+	    startRead() {
+	        trace('Request to ' + this.handler.path + ' startRead called');
+	        if (this.checkCancelled()) {
+	            return;
+	        }
+	        this.isReadPending = true;
+	        if (this.readQueue.length === 0) {
+	            if (!this.receivedHalfClose) {
+	                this.stream.resume();
+	            }
+	        }
+	        else {
+	            this.maybePushNextMessage();
+	        }
+	    }
+	    getPeer() {
+	        var _a;
+	        const socket = (_a = this.stream.session) === null || _a === void 0 ? void 0 : _a.socket;
+	        if (socket === null || socket === void 0 ? void 0 : socket.remoteAddress) {
+	            if (socket.remotePort) {
+	                return `${socket.remoteAddress}:${socket.remotePort}`;
+	            }
+	            else {
+	                return socket.remoteAddress;
+	            }
+	        }
+	        else {
+	            return 'unknown';
+	        }
+	    }
+	    getDeadline() {
+	        return this.deadline;
+	    }
+	}
+	serverInterceptors.BaseServerInterceptingCall = BaseServerInterceptingCall;
+	function getServerInterceptingCall(interceptors, stream, headers, callEventTracker, handler, options) {
+	    const methodDefinition = {
+	        path: handler.path,
+	        requestStream: handler.type === 'clientStream' || handler.type === 'bidi',
+	        responseStream: handler.type === 'serverStream' || handler.type === 'bidi',
+	        requestDeserialize: handler.deserialize,
+	        responseSerialize: handler.serialize
+	    };
+	    const baseCall = new BaseServerInterceptingCall(stream, headers, callEventTracker, handler, options);
+	    return interceptors.reduce((call, interceptor) => {
+	        return interceptor(methodDefinition, call);
+	    }, baseCall);
+	}
+	serverInterceptors.getServerInterceptingCall = getServerInterceptingCall;
+	
+	return serverInterceptors;
 }
 
 /*
@@ -28397,23 +28975,69 @@ class SecureServerCredentials extends ServerCredentials {
  * limitations under the License.
  *
  */
+var __runInitializers = (commonjsGlobal && commonjsGlobal.__runInitializers) || function (thisArg, initializers, value) {
+    var useValue = arguments.length > 2;
+    for (var i = 0; i < initializers.length; i++) {
+        value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
+    }
+    return useValue ? value : void 0;
+};
+var __esDecorate = (commonjsGlobal && commonjsGlobal.__esDecorate) || function (ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
+    function accept(f) { if (f !== void 0 && typeof f !== "function") throw new TypeError("Function expected"); return f; }
+    var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
+    var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
+    var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
+    var _, done = false;
+    for (var i = decorators.length - 1; i >= 0; i--) {
+        var context = {};
+        for (var p in contextIn) context[p] = p === "access" ? {} : contextIn[p];
+        for (var p in contextIn.access) context.access[p] = contextIn.access[p];
+        context.addInitializer = function (f) { if (done) throw new TypeError("Cannot add initializers after decoration has completed"); extraInitializers.push(accept(f || null)); };
+        var result = (0, decorators[i])(kind === "accessor" ? { get: descriptor.get, set: descriptor.set } : descriptor[key], context);
+        if (kind === "accessor") {
+            if (result === void 0) continue;
+            if (result === null || typeof result !== "object") throw new TypeError("Object expected");
+            if (_ = accept(result.get)) descriptor.get = _;
+            if (_ = accept(result.set)) descriptor.set = _;
+            if (_ = accept(result.init)) initializers.unshift(_);
+        }
+        else if (_ = accept(result)) {
+            if (kind === "field") initializers.unshift(_);
+            else descriptor[key] = _;
+        }
+    }
+    if (target) Object.defineProperty(target, contextIn.name, descriptor);
+    done = true;
+};
 Object.defineProperty(server, "__esModule", { value: true });
 server.Server = void 0;
 const http2 = require$$0$5;
+const util$2 = require$$2;
 const constants_1 = constants;
 const server_call_1 = serverCall;
 const server_credentials_1 = serverCredentials;
 const resolver_1 = resolver;
-const logging = logging$9;
+const logging = logging$8;
 const subchannel_address_1 = subchannelAddress;
 const uri_parser_1 = uriParser;
 const channelz_1 = requireChannelz();
+const server_interceptors_1 = requireServerInterceptors();
 const UNLIMITED_CONNECTION_AGE_MS = ~(1 << 31);
 const KEEPALIVE_MAX_TIME_MS = ~(1 << 31);
 const KEEPALIVE_TIMEOUT_MS = 20000;
 const { HTTP2_HEADER_PATH } = http2.constants;
 const TRACER_NAME = 'server';
 function noop() { }
+/**
+ * Decorator to wrap a class method with util.deprecate
+ * @param message The message to output if the deprecated method is called
+ * @returns
+ */
+function deprecate(message) {
+    return function (target, context) {
+        return util$2.deprecate(target, message);
+    };
+}
 function getUnimplementedStatusResponse(methodName) {
     return {
         code: constants_1.Status.UNIMPLEMENTED,
@@ -28443,265 +29067,254 @@ function getDefaultHandler(handlerType, methodName) {
             throw new Error(`Invalid handlerType ${handlerType}`);
     }
 }
-class Server {
-    constructor(options) {
-        var _a, _b, _c, _d;
-        this.http2ServerList = [];
-        this.handlers = new Map();
-        this.sessions = new Map();
-        this.started = false;
-        this.shutdown = false;
-        this.serverAddressString = 'null';
-        // Channelz Info
-        this.channelzEnabled = true;
-        this.channelzTrace = new channelz_1.ChannelzTrace();
-        this.callTracker = new channelz_1.ChannelzCallTracker();
-        this.listenerChildrenTracker = new channelz_1.ChannelzChildrenTracker();
-        this.sessionChildrenTracker = new channelz_1.ChannelzChildrenTracker();
-        this.options = options !== null && options !== void 0 ? options : {};
-        if (this.options['grpc.enable_channelz'] === 0) {
-            this.channelzEnabled = false;
-        }
-        this.channelzRef = (0, channelz_1.registerChannelzServer)(() => this.getChannelzInfo(), this.channelzEnabled);
-        if (this.channelzEnabled) {
-            this.channelzTrace.addTrace('CT_INFO', 'Server created');
-        }
-        this.maxConnectionAgeMs =
-            (_a = this.options['grpc.max_connection_age_ms']) !== null && _a !== void 0 ? _a : UNLIMITED_CONNECTION_AGE_MS;
-        this.maxConnectionAgeGraceMs =
-            (_b = this.options['grpc.max_connection_age_grace_ms']) !== null && _b !== void 0 ? _b : UNLIMITED_CONNECTION_AGE_MS;
-        this.keepaliveTimeMs =
-            (_c = this.options['grpc.keepalive_time_ms']) !== null && _c !== void 0 ? _c : KEEPALIVE_MAX_TIME_MS;
-        this.keepaliveTimeoutMs =
-            (_d = this.options['grpc.keepalive_timeout_ms']) !== null && _d !== void 0 ? _d : KEEPALIVE_TIMEOUT_MS;
-        this.trace('Server constructed');
-    }
-    getChannelzInfo() {
-        return {
-            trace: this.channelzTrace,
-            callTracker: this.callTracker,
-            listenerChildren: this.listenerChildrenTracker.getChildLists(),
-            sessionChildren: this.sessionChildrenTracker.getChildLists(),
-        };
-    }
-    getChannelzSessionInfoGetter(session) {
-        return () => {
-            var _a, _b, _c;
-            const sessionInfo = this.sessions.get(session);
-            const sessionSocket = session.socket;
-            const remoteAddress = sessionSocket.remoteAddress
-                ? (0, subchannel_address_1.stringToSubchannelAddress)(sessionSocket.remoteAddress, sessionSocket.remotePort)
-                : null;
-            const localAddress = sessionSocket.localAddress
-                ? (0, subchannel_address_1.stringToSubchannelAddress)(sessionSocket.localAddress, sessionSocket.localPort)
-                : null;
-            let tlsInfo;
-            if (session.encrypted) {
-                const tlsSocket = sessionSocket;
-                const cipherInfo = tlsSocket.getCipher();
-                const certificate = tlsSocket.getCertificate();
-                const peerCertificate = tlsSocket.getPeerCertificate();
-                tlsInfo = {
-                    cipherSuiteStandardName: (_a = cipherInfo.standardName) !== null && _a !== void 0 ? _a : null,
-                    cipherSuiteOtherName: cipherInfo.standardName
-                        ? null
-                        : cipherInfo.name,
-                    localCertificate: certificate && 'raw' in certificate ? certificate.raw : null,
-                    remoteCertificate: peerCertificate && 'raw' in peerCertificate
-                        ? peerCertificate.raw
-                        : null,
+let Server = (() => {
+    var _a;
+    let _instanceExtraInitializers = [];
+    let _start_decorators;
+    return _a = class Server {
+            constructor(options) {
+                var _b, _c, _d, _e, _f;
+                this.boundPorts = (__runInitializers(this, _instanceExtraInitializers), new Map());
+                this.http2Servers = new Map();
+                this.handlers = new Map();
+                this.sessions = new Map();
+                /**
+                 * This field only exists to ensure that the start method throws an error if
+                 * it is called twice, as it did previously.
+                 */
+                this.started = false;
+                this.shutdown = false;
+                this.serverAddressString = 'null';
+                // Channelz Info
+                this.channelzEnabled = true;
+                this.channelzTrace = new channelz_1.ChannelzTrace();
+                this.callTracker = new channelz_1.ChannelzCallTracker();
+                this.listenerChildrenTracker = new channelz_1.ChannelzChildrenTracker();
+                this.sessionChildrenTracker = new channelz_1.ChannelzChildrenTracker();
+                this.options = options !== null && options !== void 0 ? options : {};
+                if (this.options['grpc.enable_channelz'] === 0) {
+                    this.channelzEnabled = false;
+                }
+                this.channelzRef = (0, channelz_1.registerChannelzServer)(() => this.getChannelzInfo(), this.channelzEnabled);
+                if (this.channelzEnabled) {
+                    this.channelzTrace.addTrace('CT_INFO', 'Server created');
+                }
+                this.maxConnectionAgeMs =
+                    (_b = this.options['grpc.max_connection_age_ms']) !== null && _b !== void 0 ? _b : UNLIMITED_CONNECTION_AGE_MS;
+                this.maxConnectionAgeGraceMs =
+                    (_c = this.options['grpc.max_connection_age_grace_ms']) !== null && _c !== void 0 ? _c : UNLIMITED_CONNECTION_AGE_MS;
+                this.keepaliveTimeMs =
+                    (_d = this.options['grpc.keepalive_time_ms']) !== null && _d !== void 0 ? _d : KEEPALIVE_MAX_TIME_MS;
+                this.keepaliveTimeoutMs =
+                    (_e = this.options['grpc.keepalive_timeout_ms']) !== null && _e !== void 0 ? _e : KEEPALIVE_TIMEOUT_MS;
+                this.commonServerOptions = {
+                    maxSendHeaderBlockLength: Number.MAX_SAFE_INTEGER,
                 };
-            }
-            else {
-                tlsInfo = null;
-            }
-            const socketInfo = {
-                remoteAddress: remoteAddress,
-                localAddress: localAddress,
-                security: tlsInfo,
-                remoteName: null,
-                streamsStarted: sessionInfo.streamTracker.callsStarted,
-                streamsSucceeded: sessionInfo.streamTracker.callsSucceeded,
-                streamsFailed: sessionInfo.streamTracker.callsFailed,
-                messagesSent: sessionInfo.messagesSent,
-                messagesReceived: sessionInfo.messagesReceived,
-                keepAlivesSent: 0,
-                lastLocalStreamCreatedTimestamp: null,
-                lastRemoteStreamCreatedTimestamp: sessionInfo.streamTracker.lastCallStartedTimestamp,
-                lastMessageSentTimestamp: sessionInfo.lastMessageSentTimestamp,
-                lastMessageReceivedTimestamp: sessionInfo.lastMessageReceivedTimestamp,
-                localFlowControlWindow: (_b = session.state.localWindowSize) !== null && _b !== void 0 ? _b : null,
-                remoteFlowControlWindow: (_c = session.state.remoteWindowSize) !== null && _c !== void 0 ? _c : null,
-            };
-            return socketInfo;
-        };
-    }
-    trace(text) {
-        logging.trace(constants_1.LogVerbosity.DEBUG, TRACER_NAME, '(' + this.channelzRef.id + ') ' + text);
-    }
-    addProtoService() {
-        throw new Error('Not implemented. Use addService() instead');
-    }
-    addService(service, implementation) {
-        if (service === null ||
-            typeof service !== 'object' ||
-            implementation === null ||
-            typeof implementation !== 'object') {
-            throw new Error('addService() requires two objects as arguments');
-        }
-        const serviceKeys = Object.keys(service);
-        if (serviceKeys.length === 0) {
-            throw new Error('Cannot add an empty service to a server');
-        }
-        serviceKeys.forEach(name => {
-            const attrs = service[name];
-            let methodType;
-            if (attrs.requestStream) {
-                if (attrs.responseStream) {
-                    methodType = 'bidi';
+                if ('grpc-node.max_session_memory' in this.options) {
+                    this.commonServerOptions.maxSessionMemory =
+                        this.options['grpc-node.max_session_memory'];
                 }
                 else {
-                    methodType = 'clientStream';
+                    /* By default, set a very large max session memory limit, to effectively
+                     * disable enforcement of the limit. Some testing indicates that Node's
+                     * behavior degrades badly when this limit is reached, so we solve that
+                     * by disabling the check entirely. */
+                    this.commonServerOptions.maxSessionMemory = Number.MAX_SAFE_INTEGER;
                 }
-            }
-            else {
-                if (attrs.responseStream) {
-                    methodType = 'serverStream';
-                }
-                else {
-                    methodType = 'unary';
-                }
-            }
-            let implFn = implementation[name];
-            let impl;
-            if (implFn === undefined && typeof attrs.originalName === 'string') {
-                implFn = implementation[attrs.originalName];
-            }
-            if (implFn !== undefined) {
-                impl = implFn.bind(implementation);
-            }
-            else {
-                impl = getDefaultHandler(methodType, name);
-            }
-            const success = this.register(attrs.path, impl, attrs.responseSerialize, attrs.requestDeserialize, methodType);
-            if (success === false) {
-                throw new Error(`Method handler for ${attrs.path} already provided.`);
-            }
-        });
-    }
-    removeService(service) {
-        if (service === null || typeof service !== 'object') {
-            throw new Error('removeService() requires object as argument');
-        }
-        const serviceKeys = Object.keys(service);
-        serviceKeys.forEach(name => {
-            const attrs = service[name];
-            this.unregister(attrs.path);
-        });
-    }
-    bind(port, creds) {
-        throw new Error('Not implemented. Use bindAsync() instead');
-    }
-    bindAsync(port, creds, callback) {
-        if (this.started === true) {
-            throw new Error('server is already started');
-        }
-        if (this.shutdown) {
-            throw new Error('bindAsync called after shutdown');
-        }
-        if (typeof port !== 'string') {
-            throw new TypeError('port must be a string');
-        }
-        if (creds === null || !(creds instanceof server_credentials_1.ServerCredentials)) {
-            throw new TypeError('creds must be a ServerCredentials object');
-        }
-        if (typeof callback !== 'function') {
-            throw new TypeError('callback must be a function');
-        }
-        const initialPortUri = (0, uri_parser_1.parseUri)(port);
-        if (initialPortUri === null) {
-            throw new Error(`Could not parse port "${port}"`);
-        }
-        const portUri = (0, resolver_1.mapUriDefaultScheme)(initialPortUri);
-        if (portUri === null) {
-            throw new Error(`Could not get a default scheme for port "${port}"`);
-        }
-        const serverOptions = {
-            maxSendHeaderBlockLength: Number.MAX_SAFE_INTEGER,
-        };
-        if ('grpc-node.max_session_memory' in this.options) {
-            serverOptions.maxSessionMemory =
-                this.options['grpc-node.max_session_memory'];
-        }
-        else {
-            /* By default, set a very large max session memory limit, to effectively
-             * disable enforcement of the limit. Some testing indicates that Node's
-             * behavior degrades badly when this limit is reached, so we solve that
-             * by disabling the check entirely. */
-            serverOptions.maxSessionMemory = Number.MAX_SAFE_INTEGER;
-        }
-        if ('grpc.max_concurrent_streams' in this.options) {
-            serverOptions.settings = {
-                maxConcurrentStreams: this.options['grpc.max_concurrent_streams'],
-            };
-        }
-        const deferredCallback = (error, port) => {
-            process.nextTick(() => callback(error, port));
-        };
-        const setupServer = () => {
-            let http2Server;
-            if (creds._isSecure()) {
-                const secureServerOptions = Object.assign(serverOptions, creds._getSettings());
-                secureServerOptions.enableTrace =
-                    this.options['grpc-node.tls_enable_trace'] === 1;
-                http2Server = http2.createSecureServer(secureServerOptions);
-                http2Server.on('secureConnection', (socket) => {
-                    /* These errors need to be handled by the user of Http2SecureServer,
-                     * according to https://github.com/nodejs/node/issues/35824 */
-                    socket.on('error', (e) => {
-                        this.trace('An incoming TLS connection closed with error: ' + e.message);
-                    });
-                });
-            }
-            else {
-                http2Server = http2.createServer(serverOptions);
-            }
-            http2Server.setTimeout(0, noop);
-            this._setupHandlers(http2Server);
-            return http2Server;
-        };
-        const bindSpecificPort = (addressList, portNum, previousCount) => {
-            if (addressList.length === 0) {
-                return Promise.resolve({ port: portNum, count: previousCount });
-            }
-            return Promise.all(addressList.map(address => {
-                this.trace('Attempting to bind ' + (0, subchannel_address_1.subchannelAddressToString)(address));
-                let addr;
-                if ((0, subchannel_address_1.isTcpSubchannelAddress)(address)) {
-                    addr = {
-                        host: address.host,
-                        port: portNum,
+                if ('grpc.max_concurrent_streams' in this.options) {
+                    this.commonServerOptions.settings = {
+                        maxConcurrentStreams: this.options['grpc.max_concurrent_streams'],
                     };
                 }
-                else {
-                    addr = address;
+                this.interceptors = (_f = this.options.interceptors) !== null && _f !== void 0 ? _f : [];
+                this.trace('Server constructed');
+            }
+            getChannelzInfo() {
+                return {
+                    trace: this.channelzTrace,
+                    callTracker: this.callTracker,
+                    listenerChildren: this.listenerChildrenTracker.getChildLists(),
+                    sessionChildren: this.sessionChildrenTracker.getChildLists(),
+                };
+            }
+            getChannelzSessionInfoGetter(session) {
+                return () => {
+                    var _b, _c, _d;
+                    const sessionInfo = this.sessions.get(session);
+                    const sessionSocket = session.socket;
+                    const remoteAddress = sessionSocket.remoteAddress
+                        ? (0, subchannel_address_1.stringToSubchannelAddress)(sessionSocket.remoteAddress, sessionSocket.remotePort)
+                        : null;
+                    const localAddress = sessionSocket.localAddress
+                        ? (0, subchannel_address_1.stringToSubchannelAddress)(sessionSocket.localAddress, sessionSocket.localPort)
+                        : null;
+                    let tlsInfo;
+                    if (session.encrypted) {
+                        const tlsSocket = sessionSocket;
+                        const cipherInfo = tlsSocket.getCipher();
+                        const certificate = tlsSocket.getCertificate();
+                        const peerCertificate = tlsSocket.getPeerCertificate();
+                        tlsInfo = {
+                            cipherSuiteStandardName: (_b = cipherInfo.standardName) !== null && _b !== void 0 ? _b : null,
+                            cipherSuiteOtherName: cipherInfo.standardName
+                                ? null
+                                : cipherInfo.name,
+                            localCertificate: certificate && 'raw' in certificate ? certificate.raw : null,
+                            remoteCertificate: peerCertificate && 'raw' in peerCertificate
+                                ? peerCertificate.raw
+                                : null,
+                        };
+                    }
+                    else {
+                        tlsInfo = null;
+                    }
+                    const socketInfo = {
+                        remoteAddress: remoteAddress,
+                        localAddress: localAddress,
+                        security: tlsInfo,
+                        remoteName: null,
+                        streamsStarted: sessionInfo.streamTracker.callsStarted,
+                        streamsSucceeded: sessionInfo.streamTracker.callsSucceeded,
+                        streamsFailed: sessionInfo.streamTracker.callsFailed,
+                        messagesSent: sessionInfo.messagesSent,
+                        messagesReceived: sessionInfo.messagesReceived,
+                        keepAlivesSent: 0,
+                        lastLocalStreamCreatedTimestamp: null,
+                        lastRemoteStreamCreatedTimestamp: sessionInfo.streamTracker.lastCallStartedTimestamp,
+                        lastMessageSentTimestamp: sessionInfo.lastMessageSentTimestamp,
+                        lastMessageReceivedTimestamp: sessionInfo.lastMessageReceivedTimestamp,
+                        localFlowControlWindow: (_c = session.state.localWindowSize) !== null && _c !== void 0 ? _c : null,
+                        remoteFlowControlWindow: (_d = session.state.remoteWindowSize) !== null && _d !== void 0 ? _d : null,
+                    };
+                    return socketInfo;
+                };
+            }
+            trace(text) {
+                logging.trace(constants_1.LogVerbosity.DEBUG, TRACER_NAME, '(' + this.channelzRef.id + ') ' + text);
+            }
+            addProtoService() {
+                throw new Error('Not implemented. Use addService() instead');
+            }
+            addService(service, implementation) {
+                if (service === null ||
+                    typeof service !== 'object' ||
+                    implementation === null ||
+                    typeof implementation !== 'object') {
+                    throw new Error('addService() requires two objects as arguments');
                 }
-                const http2Server = setupServer();
+                const serviceKeys = Object.keys(service);
+                if (serviceKeys.length === 0) {
+                    throw new Error('Cannot add an empty service to a server');
+                }
+                serviceKeys.forEach(name => {
+                    const attrs = service[name];
+                    let methodType;
+                    if (attrs.requestStream) {
+                        if (attrs.responseStream) {
+                            methodType = 'bidi';
+                        }
+                        else {
+                            methodType = 'clientStream';
+                        }
+                    }
+                    else {
+                        if (attrs.responseStream) {
+                            methodType = 'serverStream';
+                        }
+                        else {
+                            methodType = 'unary';
+                        }
+                    }
+                    let implFn = implementation[name];
+                    let impl;
+                    if (implFn === undefined && typeof attrs.originalName === 'string') {
+                        implFn = implementation[attrs.originalName];
+                    }
+                    if (implFn !== undefined) {
+                        impl = implFn.bind(implementation);
+                    }
+                    else {
+                        impl = getDefaultHandler(methodType, name);
+                    }
+                    const success = this.register(attrs.path, impl, attrs.responseSerialize, attrs.requestDeserialize, methodType);
+                    if (success === false) {
+                        throw new Error(`Method handler for ${attrs.path} already provided.`);
+                    }
+                });
+            }
+            removeService(service) {
+                if (service === null || typeof service !== 'object') {
+                    throw new Error('removeService() requires object as argument');
+                }
+                const serviceKeys = Object.keys(service);
+                serviceKeys.forEach(name => {
+                    const attrs = service[name];
+                    this.unregister(attrs.path);
+                });
+            }
+            bind(port, creds) {
+                throw new Error('Not implemented. Use bindAsync() instead');
+            }
+            registerListenerToChannelz(boundAddress) {
+                return (0, channelz_1.registerChannelzSocket)((0, subchannel_address_1.subchannelAddressToString)(boundAddress), () => {
+                    return {
+                        localAddress: boundAddress,
+                        remoteAddress: null,
+                        security: null,
+                        remoteName: null,
+                        streamsStarted: 0,
+                        streamsSucceeded: 0,
+                        streamsFailed: 0,
+                        messagesSent: 0,
+                        messagesReceived: 0,
+                        keepAlivesSent: 0,
+                        lastLocalStreamCreatedTimestamp: null,
+                        lastRemoteStreamCreatedTimestamp: null,
+                        lastMessageSentTimestamp: null,
+                        lastMessageReceivedTimestamp: null,
+                        localFlowControlWindow: null,
+                        remoteFlowControlWindow: null,
+                    };
+                }, this.channelzEnabled);
+            }
+            createHttp2Server(credentials) {
+                let http2Server;
+                if (credentials._isSecure()) {
+                    const secureServerOptions = Object.assign(this.commonServerOptions, credentials._getSettings());
+                    secureServerOptions.enableTrace =
+                        this.options['grpc-node.tls_enable_trace'] === 1;
+                    http2Server = http2.createSecureServer(secureServerOptions);
+                    http2Server.on('secureConnection', (socket) => {
+                        /* These errors need to be handled by the user of Http2SecureServer,
+                         * according to https://github.com/nodejs/node/issues/35824 */
+                        socket.on('error', (e) => {
+                            this.trace('An incoming TLS connection closed with error: ' + e.message);
+                        });
+                    });
+                }
+                else {
+                    http2Server = http2.createServer(this.commonServerOptions);
+                }
+                http2Server.setTimeout(0, noop);
+                this._setupHandlers(http2Server);
+                return http2Server;
+            }
+            bindOneAddress(address, boundPortObject) {
+                this.trace('Attempting to bind ' + (0, subchannel_address_1.subchannelAddressToString)(address));
+                const http2Server = this.createHttp2Server(boundPortObject.credentials);
                 return new Promise((resolve, reject) => {
                     const onError = (err) => {
                         this.trace('Failed to bind ' +
                             (0, subchannel_address_1.subchannelAddressToString)(address) +
                             ' with error ' +
                             err.message);
-                        resolve(err);
+                        resolve({
+                            port: 'port' in address ? address.port : 1,
+                            error: err.message
+                        });
                     };
                     http2Server.once('error', onError);
-                    http2Server.listen(addr, () => {
-                        if (this.shutdown) {
-                            http2Server.close();
-                            resolve(new Error('bindAsync failed because server is shutdown'));
-                            return;
-                        }
+                    http2Server.listen(address, () => {
                         const boundAddress = http2Server.address();
                         let boundSubchannelAddress;
                         if (typeof boundAddress === 'string') {
@@ -28715,561 +29328,862 @@ class Server {
                                 port: boundAddress.port,
                             };
                         }
-                        const channelzRef = (0, channelz_1.registerChannelzSocket)((0, subchannel_address_1.subchannelAddressToString)(boundSubchannelAddress), () => {
-                            return {
-                                localAddress: boundSubchannelAddress,
-                                remoteAddress: null,
-                                security: null,
-                                remoteName: null,
-                                streamsStarted: 0,
-                                streamsSucceeded: 0,
-                                streamsFailed: 0,
-                                messagesSent: 0,
-                                messagesReceived: 0,
-                                keepAlivesSent: 0,
-                                lastLocalStreamCreatedTimestamp: null,
-                                lastRemoteStreamCreatedTimestamp: null,
-                                lastMessageSentTimestamp: null,
-                                lastMessageReceivedTimestamp: null,
-                                localFlowControlWindow: null,
-                                remoteFlowControlWindow: null,
-                            };
-                        }, this.channelzEnabled);
+                        const channelzRef = this.registerListenerToChannelz(boundSubchannelAddress);
                         if (this.channelzEnabled) {
                             this.listenerChildrenTracker.refChild(channelzRef);
                         }
-                        this.http2ServerList.push({
-                            server: http2Server,
+                        this.http2Servers.set(http2Server, {
                             channelzRef: channelzRef,
+                            sessions: new Set()
                         });
+                        boundPortObject.listeningServers.add(http2Server);
                         this.trace('Successfully bound ' +
                             (0, subchannel_address_1.subchannelAddressToString)(boundSubchannelAddress));
-                        resolve('port' in boundSubchannelAddress
-                            ? boundSubchannelAddress.port
-                            : portNum);
+                        resolve({
+                            port: 'port' in boundSubchannelAddress
+                                ? boundSubchannelAddress.port
+                                : 1
+                        });
                         http2Server.removeListener('error', onError);
                     });
                 });
-            })).then(results => {
-                let count = 0;
-                for (const result of results) {
-                    if (typeof result === 'number') {
-                        count += 1;
-                        if (result !== portNum) {
-                            throw new Error('Invalid state: multiple port numbers added from single address');
-                        }
-                    }
-                }
-                return {
-                    port: portNum,
-                    count: count + previousCount,
-                };
-            });
-        };
-        const bindWildcardPort = (addressList) => {
-            if (addressList.length === 0) {
-                return Promise.resolve({ port: 0, count: 0 });
             }
-            const address = addressList[0];
-            const http2Server = setupServer();
-            return new Promise((resolve, reject) => {
-                const onError = (err) => {
-                    this.trace('Failed to bind ' +
-                        (0, subchannel_address_1.subchannelAddressToString)(address) +
-                        ' with error ' +
-                        err.message);
-                    resolve(bindWildcardPort(addressList.slice(1)));
-                };
-                http2Server.once('error', onError);
-                http2Server.listen(address, () => {
-                    if (this.shutdown) {
-                        http2Server.close();
-                        resolve({ port: 0, count: 0 });
-                        return;
-                    }
-                    const boundAddress = http2Server.address();
-                    const boundSubchannelAddress = {
-                        host: boundAddress.address,
-                        port: boundAddress.port,
-                    };
-                    const channelzRef = (0, channelz_1.registerChannelzSocket)((0, subchannel_address_1.subchannelAddressToString)(boundSubchannelAddress), () => {
-                        return {
-                            localAddress: boundSubchannelAddress,
-                            remoteAddress: null,
-                            security: null,
-                            remoteName: null,
-                            streamsStarted: 0,
-                            streamsSucceeded: 0,
-                            streamsFailed: 0,
-                            messagesSent: 0,
-                            messagesReceived: 0,
-                            keepAlivesSent: 0,
-                            lastLocalStreamCreatedTimestamp: null,
-                            lastRemoteStreamCreatedTimestamp: null,
-                            lastMessageSentTimestamp: null,
-                            lastMessageReceivedTimestamp: null,
-                            localFlowControlWindow: null,
-                            remoteFlowControlWindow: null,
-                        };
-                    }, this.channelzEnabled);
-                    if (this.channelzEnabled) {
-                        this.listenerChildrenTracker.refChild(channelzRef);
-                    }
-                    this.http2ServerList.push({
-                        server: http2Server,
-                        channelzRef: channelzRef,
-                    });
-                    this.trace('Successfully bound ' +
-                        (0, subchannel_address_1.subchannelAddressToString)(boundSubchannelAddress));
-                    resolve(bindSpecificPort(addressList.slice(1), boundAddress.port, 1));
-                    http2Server.removeListener('error', onError);
-                });
-            });
-        };
-        const resolverListener = {
-            onSuccessfulResolution: (addressList, serviceConfig, serviceConfigError) => {
-                // We only want one resolution result. Discard all future results
-                resolverListener.onSuccessfulResolution = () => { };
-                if (this.shutdown) {
-                    deferredCallback(new Error(`bindAsync failed because server is shutdown`), 0);
-                }
+            async bindManyPorts(addressList, boundPortObject) {
                 if (addressList.length === 0) {
-                    deferredCallback(new Error(`No addresses resolved for port ${port}`), 0);
-                    return;
+                    return {
+                        count: 0,
+                        port: 0,
+                        errors: []
+                    };
                 }
-                let bindResultPromise;
-                if ((0, subchannel_address_1.isTcpSubchannelAddress)(addressList[0])) {
-                    if (addressList[0].port === 0) {
-                        bindResultPromise = bindWildcardPort(addressList);
+                if ((0, subchannel_address_1.isTcpSubchannelAddress)(addressList[0]) && addressList[0].port === 0) {
+                    /* If binding to port 0, first try to bind the first address, then bind
+                     * the rest of the address list to the specific port that it binds. */
+                    const firstAddressResult = await this.bindOneAddress(addressList[0], boundPortObject);
+                    if (firstAddressResult.error) {
+                        /* If the first address fails to bind, try the same operation starting
+                         * from the second item in the list. */
+                        const restAddressResult = await this.bindManyPorts(addressList.slice(1), boundPortObject);
+                        return Object.assign(Object.assign({}, restAddressResult), { errors: [firstAddressResult.error, ...restAddressResult.errors] });
                     }
                     else {
-                        bindResultPromise = bindSpecificPort(addressList, addressList[0].port, 0);
+                        const restAddresses = addressList.slice(1).map(address => (0, subchannel_address_1.isTcpSubchannelAddress)(address) ? { host: address.host, port: firstAddressResult.port } : address);
+                        const restAddressResult = await Promise.all(restAddresses.map(address => this.bindOneAddress(address, boundPortObject)));
+                        const allResults = [firstAddressResult, ...restAddressResult];
+                        return {
+                            count: allResults.filter(result => result.error === undefined).length,
+                            port: firstAddressResult.port,
+                            errors: allResults.filter(result => result.error).map(result => result.error)
+                        };
                     }
                 }
                 else {
-                    // Use an arbitrary non-zero port for non-TCP addresses
-                    bindResultPromise = bindSpecificPort(addressList, 1, 0);
+                    const allResults = await Promise.all(addressList.map(address => this.bindOneAddress(address, boundPortObject)));
+                    return {
+                        count: allResults.filter(result => result.error === undefined).length,
+                        port: allResults[0].port,
+                        errors: allResults.filter(result => result.error).map(result => result.error)
+                    };
                 }
-                bindResultPromise.then(bindResult => {
-                    if (bindResult.count === 0) {
-                        const errorString = `No address added out of total ${addressList.length} resolved`;
-                        logging.log(constants_1.LogVerbosity.ERROR, errorString);
-                        deferredCallback(new Error(errorString), 0);
+            }
+            async bindAddressList(addressList, boundPortObject) {
+                let bindResult;
+                try {
+                    bindResult = await this.bindManyPorts(addressList, boundPortObject);
+                }
+                catch (error) {
+                    throw error;
+                }
+                if (bindResult.count > 0) {
+                    if (bindResult.count < addressList.length) {
+                        logging.log(constants_1.LogVerbosity.INFO, `WARNING Only ${bindResult.count} addresses added out of total ${addressList.length} resolved`);
                     }
-                    else {
-                        if (bindResult.count < addressList.length) {
-                            logging.log(constants_1.LogVerbosity.INFO, `WARNING Only ${bindResult.count} addresses added out of total ${addressList.length} resolved`);
-                        }
-                        deferredCallback(null, bindResult.port);
-                    }
-                }, error => {
+                    return bindResult.port;
+                }
+                else {
                     const errorString = `No address added out of total ${addressList.length} resolved`;
                     logging.log(constants_1.LogVerbosity.ERROR, errorString);
-                    deferredCallback(new Error(errorString), 0);
-                });
-            },
-            onError: error => {
-                deferredCallback(new Error(error.details), 0);
-            },
-        };
-        const resolver = (0, resolver_1.createResolver)(portUri, resolverListener, this.options);
-        resolver.updateResolution();
-    }
-    forceShutdown() {
-        // Close the server if it is still running.
-        for (const { server: http2Server, channelzRef: ref } of this
-            .http2ServerList) {
-            if (http2Server.listening) {
-                http2Server.close(() => {
-                    if (this.channelzEnabled) {
-                        this.listenerChildrenTracker.unrefChild(ref);
-                        (0, channelz_1.unregisterChannelzRef)(ref);
-                    }
-                });
-            }
-        }
-        this.started = false;
-        this.shutdown = true;
-        // Always destroy any available sessions. It's possible that one or more
-        // tryShutdown() calls are in progress. Don't wait on them to finish.
-        this.sessions.forEach((channelzInfo, session) => {
-            // Cast NGHTTP2_CANCEL to any because TypeScript doesn't seem to
-            // recognize destroy(code) as a valid signature.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            session.destroy(http2.constants.NGHTTP2_CANCEL);
-        });
-        this.sessions.clear();
-        if (this.channelzEnabled) {
-            (0, channelz_1.unregisterChannelzRef)(this.channelzRef);
-        }
-    }
-    register(name, handler, serialize, deserialize, type) {
-        if (this.handlers.has(name)) {
-            return false;
-        }
-        this.handlers.set(name, {
-            func: handler,
-            serialize,
-            deserialize,
-            type,
-            path: name,
-        });
-        return true;
-    }
-    unregister(name) {
-        return this.handlers.delete(name);
-    }
-    start() {
-        if (this.http2ServerList.length === 0 ||
-            this.http2ServerList.every(({ server: http2Server }) => http2Server.listening !== true)) {
-            throw new Error('server must be bound in order to start');
-        }
-        if (this.started === true) {
-            throw new Error('server is already started');
-        }
-        if (this.channelzEnabled) {
-            this.channelzTrace.addTrace('CT_INFO', 'Starting');
-        }
-        this.started = true;
-    }
-    tryShutdown(callback) {
-        const wrappedCallback = (error) => {
-            if (this.channelzEnabled) {
-                (0, channelz_1.unregisterChannelzRef)(this.channelzRef);
-            }
-            callback(error);
-        };
-        let pendingChecks = 0;
-        function maybeCallback() {
-            pendingChecks--;
-            if (pendingChecks === 0) {
-                wrappedCallback();
-            }
-        }
-        // Close the server if necessary.
-        this.started = false;
-        this.shutdown = true;
-        for (const { server: http2Server, channelzRef: ref } of this
-            .http2ServerList) {
-            if (http2Server.listening) {
-                pendingChecks++;
-                http2Server.close(() => {
-                    if (this.channelzEnabled) {
-                        this.listenerChildrenTracker.unrefChild(ref);
-                        (0, channelz_1.unregisterChannelzRef)(ref);
-                    }
-                    maybeCallback();
-                });
-            }
-        }
-        this.sessions.forEach((channelzInfo, session) => {
-            if (!session.closed) {
-                pendingChecks += 1;
-                session.close(maybeCallback);
-            }
-        });
-        if (pendingChecks === 0) {
-            wrappedCallback();
-        }
-    }
-    addHttp2Port() {
-        throw new Error('Not yet implemented');
-    }
-    /**
-     * Get the channelz reference object for this server. The returned value is
-     * garbage if channelz is disabled for this server.
-     * @returns
-     */
-    getChannelzRef() {
-        return this.channelzRef;
-    }
-    _verifyContentType(stream, headers) {
-        const contentType = headers[http2.constants.HTTP2_HEADER_CONTENT_TYPE];
-        if (typeof contentType !== 'string' ||
-            !contentType.startsWith('application/grpc')) {
-            stream.respond({
-                [http2.constants.HTTP2_HEADER_STATUS]: http2.constants.HTTP_STATUS_UNSUPPORTED_MEDIA_TYPE,
-            }, { endStream: true });
-            return false;
-        }
-        return true;
-    }
-    _retrieveHandler(path) {
-        this.trace('Received call to method ' +
-            path +
-            ' at address ' +
-            this.serverAddressString);
-        const handler = this.handlers.get(path);
-        if (handler === undefined) {
-            this.trace('No handler registered for method ' +
-                path +
-                '. Sending UNIMPLEMENTED status.');
-            return null;
-        }
-        return handler;
-    }
-    _respondWithError(err, stream, channelzSessionInfo = null) {
-        const call = new server_call_1.Http2ServerCallStream(stream, null, this.options);
-        if (err.code === undefined) {
-            err.code = constants_1.Status.INTERNAL;
-        }
-        if (this.channelzEnabled) {
-            this.callTracker.addCallFailed();
-            channelzSessionInfo === null || channelzSessionInfo === void 0 ? void 0 : channelzSessionInfo.streamTracker.addCallFailed();
-        }
-        call.sendError(err);
-    }
-    _channelzHandler(stream, headers) {
-        const channelzSessionInfo = this.sessions.get(stream.session);
-        this.callTracker.addCallStarted();
-        channelzSessionInfo === null || channelzSessionInfo === void 0 ? void 0 : channelzSessionInfo.streamTracker.addCallStarted();
-        if (!this._verifyContentType(stream, headers)) {
-            this.callTracker.addCallFailed();
-            channelzSessionInfo === null || channelzSessionInfo === void 0 ? void 0 : channelzSessionInfo.streamTracker.addCallFailed();
-            return;
-        }
-        const path = headers[HTTP2_HEADER_PATH];
-        const handler = this._retrieveHandler(path);
-        if (!handler) {
-            this._respondWithError(getUnimplementedStatusResponse(path), stream, channelzSessionInfo);
-            return;
-        }
-        const call = new server_call_1.Http2ServerCallStream(stream, handler, this.options);
-        call.once('callEnd', (code) => {
-            if (code === constants_1.Status.OK) {
-                this.callTracker.addCallSucceeded();
-            }
-            else {
-                this.callTracker.addCallFailed();
-            }
-        });
-        if (channelzSessionInfo) {
-            call.once('streamEnd', (success) => {
-                if (success) {
-                    channelzSessionInfo.streamTracker.addCallSucceeded();
+                    throw new Error(`${errorString} errors: [${bindResult.errors.join(',')}]`);
                 }
-                else {
-                    channelzSessionInfo.streamTracker.addCallFailed();
+            }
+            resolvePort(port) {
+                return new Promise((resolve, reject) => {
+                    const resolverListener = {
+                        onSuccessfulResolution: (endpointList, serviceConfig, serviceConfigError) => {
+                            // We only want one resolution result. Discard all future results
+                            resolverListener.onSuccessfulResolution = () => { };
+                            const addressList = [].concat(...endpointList.map(endpoint => endpoint.addresses));
+                            if (addressList.length === 0) {
+                                reject(new Error(`No addresses resolved for port ${port}`));
+                                return;
+                            }
+                            resolve(addressList);
+                        },
+                        onError: error => {
+                            reject(new Error(error.details));
+                        },
+                    };
+                    const resolver = (0, resolver_1.createResolver)(port, resolverListener, this.options);
+                    resolver.updateResolution();
+                });
+            }
+            async bindPort(port, boundPortObject) {
+                const addressList = await this.resolvePort(port);
+                if (boundPortObject.cancelled) {
+                    this.completeUnbind(boundPortObject);
+                    throw new Error('bindAsync operation cancelled by unbind call');
                 }
-            });
-            call.on('sendMessage', () => {
-                channelzSessionInfo.messagesSent += 1;
-                channelzSessionInfo.lastMessageSentTimestamp = new Date();
-            });
-            call.on('receiveMessage', () => {
-                channelzSessionInfo.messagesReceived += 1;
-                channelzSessionInfo.lastMessageReceivedTimestamp = new Date();
-            });
-        }
-        if (!this._runHandlerForCall(call, handler, headers)) {
-            this.callTracker.addCallFailed();
-            channelzSessionInfo === null || channelzSessionInfo === void 0 ? void 0 : channelzSessionInfo.streamTracker.addCallFailed();
-            call.sendError({
-                code: constants_1.Status.INTERNAL,
-                details: `Unknown handler type: ${handler.type}`,
-            });
-        }
-    }
-    _streamHandler(stream, headers) {
-        if (this._verifyContentType(stream, headers) !== true) {
-            return;
-        }
-        const path = headers[HTTP2_HEADER_PATH];
-        const handler = this._retrieveHandler(path);
-        if (!handler) {
-            this._respondWithError(getUnimplementedStatusResponse(path), stream, null);
-            return;
-        }
-        const call = new server_call_1.Http2ServerCallStream(stream, handler, this.options);
-        if (!this._runHandlerForCall(call, handler, headers)) {
-            call.sendError({
-                code: constants_1.Status.INTERNAL,
-                details: `Unknown handler type: ${handler.type}`,
-            });
-        }
-    }
-    _runHandlerForCall(call, handler, headers) {
-        var _a;
-        const metadata = call.receiveMetadata(headers);
-        const encoding = (_a = metadata.get('grpc-encoding')[0]) !== null && _a !== void 0 ? _a : 'identity';
-        metadata.remove('grpc-encoding');
-        const { type } = handler;
-        if (type === 'unary') {
-            handleUnary(call, handler, metadata, encoding);
-        }
-        else if (type === 'clientStream') {
-            handleClientStreaming(call, handler, metadata, encoding);
-        }
-        else if (type === 'serverStream') {
-            handleServerStreaming(call, handler, metadata, encoding);
-        }
-        else if (type === 'bidi') {
-            handleBidiStreaming(call, handler, metadata, encoding);
-        }
-        else {
-            return false;
-        }
-        return true;
-    }
-    _setupHandlers(http2Server) {
-        if (http2Server === null) {
-            return;
-        }
-        const serverAddress = http2Server.address();
-        let serverAddressString = 'null';
-        if (serverAddress) {
-            if (typeof serverAddress === 'string') {
-                serverAddressString = serverAddress;
+                const portNumber = await this.bindAddressList(addressList, boundPortObject);
+                if (boundPortObject.cancelled) {
+                    this.completeUnbind(boundPortObject);
+                    throw new Error('bindAsync operation cancelled by unbind call');
+                }
+                return portNumber;
             }
-            else {
-                serverAddressString = serverAddress.address + ':' + serverAddress.port;
+            normalizePort(port) {
+                const initialPortUri = (0, uri_parser_1.parseUri)(port);
+                if (initialPortUri === null) {
+                    throw new Error(`Could not parse port "${port}"`);
+                }
+                const portUri = (0, resolver_1.mapUriDefaultScheme)(initialPortUri);
+                if (portUri === null) {
+                    throw new Error(`Could not get a default scheme for port "${port}"`);
+                }
+                return portUri;
             }
-        }
-        this.serverAddressString = serverAddressString;
-        const handler = this.channelzEnabled
-            ? this._channelzHandler
-            : this._streamHandler;
-        http2Server.on('stream', handler.bind(this));
-        http2Server.on('session', session => {
-            var _a, _b, _c, _d, _e;
-            if (!this.started) {
-                session.destroy();
-                return;
-            }
-            const channelzRef = (0, channelz_1.registerChannelzSocket)((_a = session.socket.remoteAddress) !== null && _a !== void 0 ? _a : 'unknown', this.getChannelzSessionInfoGetter(session), this.channelzEnabled);
-            const channelzSessionInfo = {
-                ref: channelzRef,
-                streamTracker: new channelz_1.ChannelzCallTracker(),
-                messagesSent: 0,
-                messagesReceived: 0,
-                lastMessageSentTimestamp: null,
-                lastMessageReceivedTimestamp: null,
-            };
-            this.sessions.set(session, channelzSessionInfo);
-            const clientAddress = session.socket.remoteAddress;
-            if (this.channelzEnabled) {
-                this.channelzTrace.addTrace('CT_INFO', 'Connection established by client ' + clientAddress);
-                this.sessionChildrenTracker.refChild(channelzRef);
-            }
-            let connectionAgeTimer = null;
-            let connectionAgeGraceTimer = null;
-            let sessionClosedByServer = false;
-            if (this.maxConnectionAgeMs !== UNLIMITED_CONNECTION_AGE_MS) {
-                // Apply a random jitter within a +/-10% range
-                const jitterMagnitude = this.maxConnectionAgeMs / 10;
-                const jitter = Math.random() * jitterMagnitude * 2 - jitterMagnitude;
-                connectionAgeTimer = (_c = (_b = setTimeout(() => {
-                    var _a, _b;
-                    sessionClosedByServer = true;
-                    if (this.channelzEnabled) {
-                        this.channelzTrace.addTrace('CT_INFO', 'Connection dropped by max connection age from ' + clientAddress);
-                    }
-                    try {
-                        session.goaway(http2.constants.NGHTTP2_NO_ERROR, ~(1 << 31), Buffer.from('max_age'));
-                    }
-                    catch (e) {
-                        // The goaway can't be sent because the session is already closed
-                        session.destroy();
+            bindAsync(port, creds, callback) {
+                if (this.shutdown) {
+                    throw new Error('bindAsync called after shutdown');
+                }
+                if (typeof port !== 'string') {
+                    throw new TypeError('port must be a string');
+                }
+                if (creds === null || !(creds instanceof server_credentials_1.ServerCredentials)) {
+                    throw new TypeError('creds must be a ServerCredentials object');
+                }
+                if (typeof callback !== 'function') {
+                    throw new TypeError('callback must be a function');
+                }
+                this.trace('bindAsync port=' + port);
+                const portUri = this.normalizePort(port);
+                const deferredCallback = (error, port) => {
+                    process.nextTick(() => callback(error, port));
+                };
+                /* First, if this port is already bound or that bind operation is in
+                 * progress, use that result. */
+                let boundPortObject = this.boundPorts.get((0, uri_parser_1.uriToString)(portUri));
+                if (boundPortObject) {
+                    if (!creds._equals(boundPortObject.credentials)) {
+                        deferredCallback(new Error(`${port} already bound with incompatible credentials`), 0);
                         return;
                     }
-                    session.close();
-                    /* Allow a grace period after sending the GOAWAY before forcibly
-                     * closing the connection. */
-                    if (this.maxConnectionAgeGraceMs !== UNLIMITED_CONNECTION_AGE_MS) {
-                        connectionAgeGraceTimer = (_b = (_a = setTimeout(() => {
-                            session.destroy();
-                        }, this.maxConnectionAgeGraceMs)).unref) === null || _b === void 0 ? void 0 : _b.call(_a);
+                    /* If that operation has previously been cancelled by an unbind call,
+                     * uncancel it. */
+                    boundPortObject.cancelled = false;
+                    if (boundPortObject.completionPromise) {
+                        boundPortObject.completionPromise.then(portNum => callback(null, portNum), error => callback(error, 0));
                     }
-                }, this.maxConnectionAgeMs + jitter)).unref) === null || _c === void 0 ? void 0 : _c.call(_b);
-            }
-            const keeapliveTimeTimer = (_e = (_d = setInterval(() => {
-                var _a, _b;
-                const timeoutTImer = (_b = (_a = setTimeout(() => {
-                    sessionClosedByServer = true;
-                    if (this.channelzEnabled) {
-                        this.channelzTrace.addTrace('CT_INFO', 'Connection dropped by keepalive timeout from ' + clientAddress);
+                    else {
+                        deferredCallback(null, boundPortObject.portNumber);
                     }
-                    session.close();
-                }, this.keepaliveTimeoutMs)).unref) === null || _b === void 0 ? void 0 : _b.call(_a);
-                try {
-                    session.ping((err, duration, payload) => {
-                        clearTimeout(timeoutTImer);
+                    return;
+                }
+                boundPortObject = {
+                    mapKey: (0, uri_parser_1.uriToString)(portUri),
+                    originalUri: portUri,
+                    completionPromise: null,
+                    cancelled: false,
+                    portNumber: 0,
+                    credentials: creds,
+                    listeningServers: new Set()
+                };
+                const splitPort = (0, uri_parser_1.splitHostPort)(portUri.path);
+                const completionPromise = this.bindPort(portUri, boundPortObject);
+                boundPortObject.completionPromise = completionPromise;
+                /* If the port number is 0, defer populating the map entry until after the
+                 * bind operation completes and we have a specific port number. Otherwise,
+                 * populate it immediately. */
+                if ((splitPort === null || splitPort === void 0 ? void 0 : splitPort.port) === 0) {
+                    completionPromise.then(portNum => {
+                        const finalUri = {
+                            scheme: portUri.scheme,
+                            authority: portUri.authority,
+                            path: (0, uri_parser_1.combineHostPort)({ host: splitPort.host, port: portNum })
+                        };
+                        boundPortObject.mapKey = (0, uri_parser_1.uriToString)(finalUri);
+                        boundPortObject.completionPromise = null;
+                        boundPortObject.portNumber = portNum;
+                        this.boundPorts.set(boundPortObject.mapKey, boundPortObject);
+                        callback(null, portNum);
+                    }, error => {
+                        callback(error, 0);
                     });
                 }
-                catch (e) {
-                    // The ping can't be sent because the session is already closed
-                    session.destroy();
+                else {
+                    this.boundPorts.set(boundPortObject.mapKey, boundPortObject);
+                    completionPromise.then(portNum => {
+                        boundPortObject.completionPromise = null;
+                        boundPortObject.portNumber = portNum;
+                        callback(null, portNum);
+                    }, error => {
+                        callback(error, 0);
+                    });
                 }
-            }, this.keepaliveTimeMs)).unref) === null || _e === void 0 ? void 0 : _e.call(_d);
-            session.on('close', () => {
-                if (this.channelzEnabled) {
-                    if (!sessionClosedByServer) {
-                        this.channelzTrace.addTrace('CT_INFO', 'Connection dropped by client ' + clientAddress);
+            }
+            closeServer(server, callback) {
+                this.trace('Closing server with address ' + JSON.stringify(server.address()));
+                const serverInfo = this.http2Servers.get(server);
+                server.close(() => {
+                    if (this.channelzEnabled && serverInfo) {
+                        this.listenerChildrenTracker.unrefChild(serverInfo.channelzRef);
+                        (0, channelz_1.unregisterChannelzRef)(serverInfo.channelzRef);
                     }
-                    this.sessionChildrenTracker.unrefChild(channelzRef);
-                    (0, channelz_1.unregisterChannelzRef)(channelzRef);
+                    this.http2Servers.delete(server);
+                    callback === null || callback === void 0 ? void 0 : callback();
+                });
+            }
+            closeSession(session, callback) {
+                var _b;
+                this.trace('Closing session initiated by ' + ((_b = session.socket) === null || _b === void 0 ? void 0 : _b.remoteAddress));
+                const sessionInfo = this.sessions.get(session);
+                const closeCallback = () => {
+                    if (this.channelzEnabled && sessionInfo) {
+                        this.sessionChildrenTracker.unrefChild(sessionInfo.ref);
+                        (0, channelz_1.unregisterChannelzRef)(sessionInfo.ref);
+                    }
+                    this.sessions.delete(session);
+                    callback === null || callback === void 0 ? void 0 : callback();
+                };
+                if (session.closed) {
+                    process.nextTick(closeCallback);
                 }
-                if (connectionAgeTimer) {
-                    clearTimeout(connectionAgeTimer);
+                else {
+                    session.close(closeCallback);
                 }
-                if (connectionAgeGraceTimer) {
-                    clearTimeout(connectionAgeGraceTimer);
+            }
+            completeUnbind(boundPortObject) {
+                for (const server of boundPortObject.listeningServers) {
+                    const serverInfo = this.http2Servers.get(server);
+                    this.closeServer(server, () => {
+                        boundPortObject.listeningServers.delete(server);
+                    });
+                    if (serverInfo) {
+                        for (const session of serverInfo.sessions) {
+                            this.closeSession(session);
+                        }
+                    }
                 }
-                if (keeapliveTimeTimer) {
-                    clearTimeout(keeapliveTimeTimer);
+                this.boundPorts.delete(boundPortObject.mapKey);
+            }
+            /**
+             * Unbind a previously bound port, or cancel an in-progress bindAsync
+             * operation. If port 0 was bound, only the actual bound port can be
+             * unbound. For example, if bindAsync was called with "localhost:0" and the
+             * bound port result was 54321, it can be unbound as "localhost:54321".
+             * @param port
+             */
+            unbind(port) {
+                this.trace('unbind port=' + port);
+                const portUri = this.normalizePort(port);
+                const splitPort = (0, uri_parser_1.splitHostPort)(portUri.path);
+                if ((splitPort === null || splitPort === void 0 ? void 0 : splitPort.port) === 0) {
+                    throw new Error('Cannot unbind port 0');
                 }
-                this.sessions.delete(session);
+                const boundPortObject = this.boundPorts.get((0, uri_parser_1.uriToString)(portUri));
+                if (boundPortObject) {
+                    this.trace('unbinding ' + boundPortObject.mapKey + ' originally bound as ' + (0, uri_parser_1.uriToString)(boundPortObject.originalUri));
+                    /* If the bind operation is pending, the cancelled flag will trigger
+                     * the unbind operation later. */
+                    if (boundPortObject.completionPromise) {
+                        boundPortObject.cancelled = true;
+                    }
+                    else {
+                        this.completeUnbind(boundPortObject);
+                    }
+                }
+            }
+            /**
+             * Gracefully close all connections associated with a previously bound port.
+             * After the grace time, forcefully close all remaining open connections.
+             *
+             * If port 0 was bound, only the actual bound port can be
+             * drained. For example, if bindAsync was called with "localhost:0" and the
+             * bound port result was 54321, it can be drained as "localhost:54321".
+             * @param port
+             * @param graceTimeMs
+             * @returns
+             */
+            drain(port, graceTimeMs) {
+                var _b, _c;
+                this.trace('drain port=' + port + ' graceTimeMs=' + graceTimeMs);
+                const portUri = this.normalizePort(port);
+                const splitPort = (0, uri_parser_1.splitHostPort)(portUri.path);
+                if ((splitPort === null || splitPort === void 0 ? void 0 : splitPort.port) === 0) {
+                    throw new Error('Cannot drain port 0');
+                }
+                const boundPortObject = this.boundPorts.get((0, uri_parser_1.uriToString)(portUri));
+                if (!boundPortObject) {
+                    return;
+                }
+                const allSessions = new Set();
+                for (const http2Server of boundPortObject.listeningServers) {
+                    const serverEntry = this.http2Servers.get(http2Server);
+                    if (!serverEntry) {
+                        continue;
+                    }
+                    for (const session of serverEntry.sessions) {
+                        allSessions.add(session);
+                        this.closeSession(session, () => {
+                            allSessions.delete(session);
+                        });
+                    }
+                }
+                /* After the grace time ends, send another goaway to all remaining sessions
+                 * with the CANCEL code. */
+                (_c = (_b = setTimeout(() => {
+                    for (const session of allSessions) {
+                        session.destroy(http2.constants.NGHTTP2_CANCEL);
+                    }
+                }, graceTimeMs)).unref) === null || _c === void 0 ? void 0 : _c.call(_b);
+            }
+            forceShutdown() {
+                for (const boundPortObject of this.boundPorts.values()) {
+                    boundPortObject.cancelled = true;
+                }
+                this.boundPorts.clear();
+                // Close the server if it is still running.
+                for (const server of this.http2Servers.keys()) {
+                    this.closeServer(server);
+                }
+                // Always destroy any available sessions. It's possible that one or more
+                // tryShutdown() calls are in progress. Don't wait on them to finish.
+                this.sessions.forEach((channelzInfo, session) => {
+                    this.closeSession(session);
+                    // Cast NGHTTP2_CANCEL to any because TypeScript doesn't seem to
+                    // recognize destroy(code) as a valid signature.
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    session.destroy(http2.constants.NGHTTP2_CANCEL);
+                });
+                this.sessions.clear();
+                if (this.channelzEnabled) {
+                    (0, channelz_1.unregisterChannelzRef)(this.channelzRef);
+                }
+                this.shutdown = true;
+            }
+            register(name, handler, serialize, deserialize, type) {
+                if (this.handlers.has(name)) {
+                    return false;
+                }
+                this.handlers.set(name, {
+                    func: handler,
+                    serialize,
+                    deserialize,
+                    type,
+                    path: name,
+                });
+                return true;
+            }
+            unregister(name) {
+                return this.handlers.delete(name);
+            }
+            /**
+             * @deprecated No longer needed as of version 1.10.x
+             */
+            start() {
+                if (this.http2Servers.size === 0 ||
+                    [...this.http2Servers.keys()].every(server => !server.listening)) {
+                    throw new Error('server must be bound in order to start');
+                }
+                if (this.started === true) {
+                    throw new Error('server is already started');
+                }
+                this.started = true;
+            }
+            tryShutdown(callback) {
+                var _b;
+                const wrappedCallback = (error) => {
+                    if (this.channelzEnabled) {
+                        (0, channelz_1.unregisterChannelzRef)(this.channelzRef);
+                    }
+                    callback(error);
+                };
+                let pendingChecks = 0;
+                function maybeCallback() {
+                    pendingChecks--;
+                    if (pendingChecks === 0) {
+                        wrappedCallback();
+                    }
+                }
+                this.shutdown = true;
+                for (const server of this.http2Servers.keys()) {
+                    pendingChecks++;
+                    const serverString = this.http2Servers.get(server).channelzRef.name;
+                    this.trace('Waiting for server ' + serverString + ' to close');
+                    this.closeServer(server, () => {
+                        this.trace('Server ' + serverString + ' finished closing');
+                        maybeCallback();
+                    });
+                }
+                for (const session of this.sessions.keys()) {
+                    pendingChecks++;
+                    const sessionString = (_b = session.socket) === null || _b === void 0 ? void 0 : _b.remoteAddress;
+                    this.trace('Waiting for session ' + sessionString + ' to close');
+                    this.closeSession(session, () => {
+                        this.trace('Session ' + sessionString + ' finished closing');
+                        maybeCallback();
+                    });
+                }
+                if (pendingChecks === 0) {
+                    wrappedCallback();
+                }
+            }
+            addHttp2Port() {
+                throw new Error('Not yet implemented');
+            }
+            /**
+             * Get the channelz reference object for this server. The returned value is
+             * garbage if channelz is disabled for this server.
+             * @returns
+             */
+            getChannelzRef() {
+                return this.channelzRef;
+            }
+            _verifyContentType(stream, headers) {
+                const contentType = headers[http2.constants.HTTP2_HEADER_CONTENT_TYPE];
+                if (typeof contentType !== 'string' ||
+                    !contentType.startsWith('application/grpc')) {
+                    stream.respond({
+                        [http2.constants.HTTP2_HEADER_STATUS]: http2.constants.HTTP_STATUS_UNSUPPORTED_MEDIA_TYPE,
+                    }, { endStream: true });
+                    return false;
+                }
+                return true;
+            }
+            _retrieveHandler(path) {
+                this.trace('Received call to method ' +
+                    path +
+                    ' at address ' +
+                    this.serverAddressString);
+                const handler = this.handlers.get(path);
+                if (handler === undefined) {
+                    this.trace('No handler registered for method ' +
+                        path +
+                        '. Sending UNIMPLEMENTED status.');
+                    return null;
+                }
+                return handler;
+            }
+            _respondWithError(err, stream, channelzSessionInfo = null) {
+                var _b, _c;
+                const trailersToSend = Object.assign({ 'grpc-status': (_b = err.code) !== null && _b !== void 0 ? _b : constants_1.Status.INTERNAL, 'grpc-message': err.details, [http2.constants.HTTP2_HEADER_STATUS]: http2.constants.HTTP_STATUS_OK, [http2.constants.HTTP2_HEADER_CONTENT_TYPE]: 'application/grpc+proto' }, (_c = err.metadata) === null || _c === void 0 ? void 0 : _c.toHttp2Headers());
+                stream.respond(trailersToSend, { endStream: true });
+                if (this.channelzEnabled) {
+                    this.callTracker.addCallFailed();
+                    channelzSessionInfo === null || channelzSessionInfo === void 0 ? void 0 : channelzSessionInfo.streamTracker.addCallFailed();
+                }
+            }
+            _channelzHandler(stream, headers) {
+                const channelzSessionInfo = this.sessions.get(stream.session);
+                this.callTracker.addCallStarted();
+                channelzSessionInfo === null || channelzSessionInfo === void 0 ? void 0 : channelzSessionInfo.streamTracker.addCallStarted();
+                if (!this._verifyContentType(stream, headers)) {
+                    this.callTracker.addCallFailed();
+                    channelzSessionInfo === null || channelzSessionInfo === void 0 ? void 0 : channelzSessionInfo.streamTracker.addCallFailed();
+                    return;
+                }
+                const path = headers[HTTP2_HEADER_PATH];
+                const handler = this._retrieveHandler(path);
+                if (!handler) {
+                    this._respondWithError(getUnimplementedStatusResponse(path), stream, channelzSessionInfo);
+                    return;
+                }
+                let callEventTracker = {
+                    addMessageSent: () => {
+                        if (channelzSessionInfo) {
+                            channelzSessionInfo.messagesSent += 1;
+                            channelzSessionInfo.lastMessageSentTimestamp = new Date();
+                        }
+                    },
+                    addMessageReceived: () => {
+                        if (channelzSessionInfo) {
+                            channelzSessionInfo.messagesReceived += 1;
+                            channelzSessionInfo.lastMessageReceivedTimestamp = new Date();
+                        }
+                    },
+                    onCallEnd: status => {
+                        if (status.code === constants_1.Status.OK) {
+                            this.callTracker.addCallSucceeded();
+                        }
+                        else {
+                            this.callTracker.addCallFailed();
+                        }
+                    },
+                    onStreamEnd: success => {
+                        if (channelzSessionInfo) {
+                            if (success) {
+                                channelzSessionInfo.streamTracker.addCallSucceeded();
+                            }
+                            else {
+                                channelzSessionInfo.streamTracker.addCallFailed();
+                            }
+                        }
+                    }
+                };
+                const call = (0, server_interceptors_1.getServerInterceptingCall)(this.interceptors, stream, headers, callEventTracker, handler, this.options);
+                if (!this._runHandlerForCall(call, handler)) {
+                    this.callTracker.addCallFailed();
+                    channelzSessionInfo === null || channelzSessionInfo === void 0 ? void 0 : channelzSessionInfo.streamTracker.addCallFailed();
+                    call.sendStatus({
+                        code: constants_1.Status.INTERNAL,
+                        details: `Unknown handler type: ${handler.type}`,
+                    });
+                }
+            }
+            _streamHandler(stream, headers) {
+                if (this._verifyContentType(stream, headers) !== true) {
+                    return;
+                }
+                const path = headers[HTTP2_HEADER_PATH];
+                const handler = this._retrieveHandler(path);
+                if (!handler) {
+                    this._respondWithError(getUnimplementedStatusResponse(path), stream, null);
+                    return;
+                }
+                const call = (0, server_interceptors_1.getServerInterceptingCall)(this.interceptors, stream, headers, null, handler, this.options);
+                if (!this._runHandlerForCall(call, handler)) {
+                    call.sendStatus({
+                        code: constants_1.Status.INTERNAL,
+                        details: `Unknown handler type: ${handler.type}`,
+                    });
+                }
+            }
+            _runHandlerForCall(call, handler) {
+                const { type } = handler;
+                if (type === 'unary') {
+                    handleUnary(call, handler);
+                }
+                else if (type === 'clientStream') {
+                    handleClientStreaming(call, handler);
+                }
+                else if (type === 'serverStream') {
+                    handleServerStreaming(call, handler);
+                }
+                else if (type === 'bidi') {
+                    handleBidiStreaming(call, handler);
+                }
+                else {
+                    return false;
+                }
+                return true;
+            }
+            _setupHandlers(http2Server) {
+                if (http2Server === null) {
+                    return;
+                }
+                const serverAddress = http2Server.address();
+                let serverAddressString = 'null';
+                if (serverAddress) {
+                    if (typeof serverAddress === 'string') {
+                        serverAddressString = serverAddress;
+                    }
+                    else {
+                        serverAddressString = serverAddress.address + ':' + serverAddress.port;
+                    }
+                }
+                this.serverAddressString = serverAddressString;
+                const handler = this.channelzEnabled
+                    ? this._channelzHandler
+                    : this._streamHandler;
+                http2Server.on('stream', handler.bind(this));
+                http2Server.on('session', session => {
+                    var _b, _c, _d, _e, _f, _g;
+                    const channelzRef = (0, channelz_1.registerChannelzSocket)((_b = session.socket.remoteAddress) !== null && _b !== void 0 ? _b : 'unknown', this.getChannelzSessionInfoGetter(session), this.channelzEnabled);
+                    const channelzSessionInfo = {
+                        ref: channelzRef,
+                        streamTracker: new channelz_1.ChannelzCallTracker(),
+                        messagesSent: 0,
+                        messagesReceived: 0,
+                        lastMessageSentTimestamp: null,
+                        lastMessageReceivedTimestamp: null,
+                    };
+                    (_c = this.http2Servers.get(http2Server)) === null || _c === void 0 ? void 0 : _c.sessions.add(session);
+                    this.sessions.set(session, channelzSessionInfo);
+                    const clientAddress = session.socket.remoteAddress;
+                    if (this.channelzEnabled) {
+                        this.channelzTrace.addTrace('CT_INFO', 'Connection established by client ' + clientAddress);
+                        this.sessionChildrenTracker.refChild(channelzRef);
+                    }
+                    let connectionAgeTimer = null;
+                    let connectionAgeGraceTimer = null;
+                    let sessionClosedByServer = false;
+                    if (this.maxConnectionAgeMs !== UNLIMITED_CONNECTION_AGE_MS) {
+                        // Apply a random jitter within a +/-10% range
+                        const jitterMagnitude = this.maxConnectionAgeMs / 10;
+                        const jitter = Math.random() * jitterMagnitude * 2 - jitterMagnitude;
+                        connectionAgeTimer = (_e = (_d = setTimeout(() => {
+                            var _b, _c;
+                            sessionClosedByServer = true;
+                            if (this.channelzEnabled) {
+                                this.channelzTrace.addTrace('CT_INFO', 'Connection dropped by max connection age from ' + clientAddress);
+                            }
+                            try {
+                                session.goaway(http2.constants.NGHTTP2_NO_ERROR, ~(1 << 31), Buffer.from('max_age'));
+                            }
+                            catch (e) {
+                                // The goaway can't be sent because the session is already closed
+                                session.destroy();
+                                return;
+                            }
+                            session.close();
+                            /* Allow a grace period after sending the GOAWAY before forcibly
+                             * closing the connection. */
+                            if (this.maxConnectionAgeGraceMs !== UNLIMITED_CONNECTION_AGE_MS) {
+                                connectionAgeGraceTimer = (_c = (_b = setTimeout(() => {
+                                    session.destroy();
+                                }, this.maxConnectionAgeGraceMs)).unref) === null || _c === void 0 ? void 0 : _c.call(_b);
+                            }
+                        }, this.maxConnectionAgeMs + jitter)).unref) === null || _e === void 0 ? void 0 : _e.call(_d);
+                    }
+                    const keeapliveTimeTimer = (_g = (_f = setInterval(() => {
+                        var _b, _c;
+                        const timeoutTImer = (_c = (_b = setTimeout(() => {
+                            sessionClosedByServer = true;
+                            if (this.channelzEnabled) {
+                                this.channelzTrace.addTrace('CT_INFO', 'Connection dropped by keepalive timeout from ' + clientAddress);
+                            }
+                            session.close();
+                        }, this.keepaliveTimeoutMs)).unref) === null || _c === void 0 ? void 0 : _c.call(_b);
+                        try {
+                            session.ping((err, duration, payload) => {
+                                clearTimeout(timeoutTImer);
+                            });
+                        }
+                        catch (e) {
+                            // The ping can't be sent because the session is already closed
+                            session.destroy();
+                        }
+                    }, this.keepaliveTimeMs)).unref) === null || _g === void 0 ? void 0 : _g.call(_f);
+                    session.on('close', () => {
+                        var _b;
+                        if (this.channelzEnabled) {
+                            if (!sessionClosedByServer) {
+                                this.channelzTrace.addTrace('CT_INFO', 'Connection dropped by client ' + clientAddress);
+                            }
+                            this.sessionChildrenTracker.unrefChild(channelzRef);
+                            (0, channelz_1.unregisterChannelzRef)(channelzRef);
+                        }
+                        if (connectionAgeTimer) {
+                            clearTimeout(connectionAgeTimer);
+                        }
+                        if (connectionAgeGraceTimer) {
+                            clearTimeout(connectionAgeGraceTimer);
+                        }
+                        if (keeapliveTimeTimer) {
+                            clearTimeout(keeapliveTimeTimer);
+                        }
+                        (_b = this.http2Servers.get(http2Server)) === null || _b === void 0 ? void 0 : _b.sessions.delete(session);
+                        this.sessions.delete(session);
+                    });
+                });
+            }
+        },
+        (() => {
+            const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(null) : void 0;
+            _start_decorators = [deprecate('Calling start() is no longer necessary. It can be safely omitted.')];
+            __esDecorate(_a, null, _start_decorators, { kind: "method", name: "start", static: false, private: false, access: { has: obj => "start" in obj, get: obj => obj.start }, metadata: _metadata }, null, _instanceExtraInitializers);
+            if (_metadata) Object.defineProperty(_a, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
+        })(),
+        _a;
+})();
+server.Server = Server;
+async function handleUnary(call, handler) {
+    let stream;
+    function respond(err, value, trailer, flags) {
+        if (err) {
+            call.sendStatus((0, server_call_1.serverErrorToStatus)(err, trailer));
+            return;
+        }
+        call.sendMessage(value, () => {
+            call.sendStatus({
+                code: constants_1.Status.OK,
+                details: 'OK',
+                metadata: trailer !== null && trailer !== void 0 ? trailer : null
             });
         });
     }
+    let requestMetadata;
+    let requestMessage = null;
+    call.start({
+        onReceiveMetadata(metadata) {
+            requestMetadata = metadata;
+            call.startRead();
+        },
+        onReceiveMessage(message) {
+            if (requestMessage) {
+                call.sendStatus({
+                    code: constants_1.Status.UNIMPLEMENTED,
+                    details: `Received a second request message for server streaming method ${handler.path}`,
+                    metadata: null
+                });
+                return;
+            }
+            requestMessage = message;
+            call.startRead();
+        },
+        onReceiveHalfClose() {
+            if (!requestMessage) {
+                call.sendStatus({
+                    code: constants_1.Status.UNIMPLEMENTED,
+                    details: `Received no request message for server streaming method ${handler.path}`,
+                    metadata: null
+                });
+                return;
+            }
+            stream = new server_call_1.ServerWritableStreamImpl(handler.path, call, requestMetadata, requestMessage);
+            try {
+                handler.func(stream, respond);
+            }
+            catch (err) {
+                call.sendStatus({
+                    code: constants_1.Status.UNKNOWN,
+                    details: `Server method handler threw error ${err.message}`,
+                    metadata: null
+                });
+            }
+        },
+        onCancel() {
+            if (stream) {
+                stream.cancelled = true;
+                stream.emit('cancelled', 'cancelled');
+            }
+        },
+    });
 }
-server.Server = Server;
-async function handleUnary(call, handler, metadata, encoding) {
-    try {
-        const request = await call.receiveUnaryMessage(encoding);
-        if (request === undefined || call.cancelled) {
+function handleClientStreaming(call, handler) {
+    let stream;
+    function respond(err, value, trailer, flags) {
+        if (err) {
+            call.sendStatus((0, server_call_1.serverErrorToStatus)(err, trailer));
             return;
         }
-        const emitter = new server_call_1.ServerUnaryCallImpl(call, metadata, request);
-        handler.func(emitter, (err, value, trailer, flags) => {
-            call.sendUnaryMessage(err, value, trailer, flags);
+        call.sendMessage(value, () => {
+            call.sendStatus({
+                code: constants_1.Status.OK,
+                details: 'OK',
+                metadata: trailer !== null && trailer !== void 0 ? trailer : null
+            });
         });
     }
-    catch (err) {
-        call.sendError(err);
-    }
+    call.start({
+        onReceiveMetadata(metadata) {
+            stream = new server_call_1.ServerDuplexStreamImpl(handler.path, call, metadata);
+            try {
+                handler.func(stream, respond);
+            }
+            catch (err) {
+                call.sendStatus({
+                    code: constants_1.Status.UNKNOWN,
+                    details: `Server method handler threw error ${err.message}`,
+                    metadata: null
+                });
+            }
+        },
+        onReceiveMessage(message) {
+            stream.push(message);
+        },
+        onReceiveHalfClose() {
+            stream.push(null);
+        },
+        onCancel() {
+            if (stream) {
+                stream.cancelled = true;
+                stream.emit('cancelled', 'cancelled');
+                stream.destroy();
+            }
+        },
+    });
 }
-function handleClientStreaming(call, handler, metadata, encoding) {
-    const stream = new server_call_1.ServerReadableStreamImpl(call, metadata, handler.deserialize, encoding);
-    function respond(err, value, trailer, flags) {
-        stream.destroy();
-        call.sendUnaryMessage(err, value, trailer, flags);
-    }
-    if (call.cancelled) {
-        return;
-    }
-    stream.on('error', respond);
-    handler.func(stream, respond);
+function handleServerStreaming(call, handler) {
+    let stream;
+    let requestMetadata;
+    let requestMessage = null;
+    call.start({
+        onReceiveMetadata(metadata) {
+            requestMetadata = metadata;
+            call.startRead();
+        },
+        onReceiveMessage(message) {
+            if (requestMessage) {
+                call.sendStatus({
+                    code: constants_1.Status.UNIMPLEMENTED,
+                    details: `Received a second request message for server streaming method ${handler.path}`,
+                    metadata: null
+                });
+                return;
+            }
+            requestMessage = message;
+            call.startRead();
+        },
+        onReceiveHalfClose() {
+            if (!requestMessage) {
+                call.sendStatus({
+                    code: constants_1.Status.UNIMPLEMENTED,
+                    details: `Received no request message for server streaming method ${handler.path}`,
+                    metadata: null
+                });
+                return;
+            }
+            stream = new server_call_1.ServerWritableStreamImpl(handler.path, call, requestMetadata, requestMessage);
+            try {
+                handler.func(stream);
+            }
+            catch (err) {
+                call.sendStatus({
+                    code: constants_1.Status.UNKNOWN,
+                    details: `Server method handler threw error ${err.message}`,
+                    metadata: null
+                });
+            }
+        },
+        onCancel() {
+            if (stream) {
+                stream.cancelled = true;
+                stream.emit('cancelled', 'cancelled');
+                stream.destroy();
+            }
+        },
+    });
 }
-async function handleServerStreaming(call, handler, metadata, encoding) {
-    try {
-        const request = await call.receiveUnaryMessage(encoding);
-        if (request === undefined || call.cancelled) {
-            return;
-        }
-        const stream = new server_call_1.ServerWritableStreamImpl(call, metadata, handler.serialize, request);
-        handler.func(stream);
-    }
-    catch (err) {
-        call.sendError(err);
-    }
-}
-function handleBidiStreaming(call, handler, metadata, encoding) {
-    const stream = new server_call_1.ServerDuplexStreamImpl(call, metadata, handler.serialize, handler.deserialize, encoding);
-    if (call.cancelled) {
-        return;
-    }
-    handler.func(stream);
+function handleBidiStreaming(call, handler) {
+    let stream;
+    call.start({
+        onReceiveMetadata(metadata) {
+            stream = new server_call_1.ServerDuplexStreamImpl(handler.path, call, metadata);
+            try {
+                handler.func(stream);
+            }
+            catch (err) {
+                call.sendStatus({
+                    code: constants_1.Status.UNKNOWN,
+                    details: `Server method handler threw error ${err.message}`,
+                    metadata: null
+                });
+            }
+        },
+        onReceiveMessage(message) {
+            stream.push(message);
+        },
+        onReceiveHalfClose() {
+            stream.push(null);
+        },
+        onCancel() {
+            if (stream) {
+                stream.cancelled = true;
+                stream.emit('cancelled', 'cancelled');
+                stream.destroy();
+            }
+        },
+    });
 }
 
 var statusBuilder = {};
@@ -29387,845 +30301,6 @@ function requireDuration () {
 	return duration;
 }
 
-var loadBalancerOutlierDetection = {};
-
-var hasRequiredLoadBalancerOutlierDetection;
-
-function requireLoadBalancerOutlierDetection () {
-	if (hasRequiredLoadBalancerOutlierDetection) return loadBalancerOutlierDetection;
-	hasRequiredLoadBalancerOutlierDetection = 1;
-	/*
-	 * Copyright 2022 gRPC authors.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 *     http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 */
-	var _a;
-	Object.defineProperty(loadBalancerOutlierDetection, "__esModule", { value: true });
-	loadBalancerOutlierDetection.setup = loadBalancerOutlierDetection.OutlierDetectionLoadBalancer = loadBalancerOutlierDetection.OutlierDetectionLoadBalancingConfig = void 0;
-	const connectivity_state_1 = connectivityState;
-	const constants_1 = constants;
-	const duration_1 = requireDuration();
-	const experimental_1 = requireExperimental();
-	const load_balancer_1 = requireLoadBalancer();
-	const load_balancer_child_handler_1 = requireLoadBalancerChildHandler();
-	const picker_1 = requirePicker();
-	const subchannel_address_1 = subchannelAddress;
-	const subchannel_interface_1 = requireSubchannelInterface();
-	const logging = logging$9;
-	const TRACER_NAME = 'outlier_detection';
-	function trace(text) {
-	    logging.trace(constants_1.LogVerbosity.DEBUG, TRACER_NAME, text);
-	}
-	const TYPE_NAME = 'outlier_detection';
-	const OUTLIER_DETECTION_ENABLED = ((_a = process.env.GRPC_EXPERIMENTAL_ENABLE_OUTLIER_DETECTION) !== null && _a !== void 0 ? _a : 'true') === 'true';
-	const defaultSuccessRateEjectionConfig = {
-	    stdev_factor: 1900,
-	    enforcement_percentage: 100,
-	    minimum_hosts: 5,
-	    request_volume: 100,
-	};
-	const defaultFailurePercentageEjectionConfig = {
-	    threshold: 85,
-	    enforcement_percentage: 100,
-	    minimum_hosts: 5,
-	    request_volume: 50,
-	};
-	function validateFieldType(obj, fieldName, expectedType, objectName) {
-	    if (fieldName in obj && typeof obj[fieldName] !== expectedType) {
-	        const fullFieldName = objectName ? `${objectName}.${fieldName}` : fieldName;
-	        throw new Error(`outlier detection config ${fullFieldName} parse error: expected ${expectedType}, got ${typeof obj[fieldName]}`);
-	    }
-	}
-	function validatePositiveDuration(obj, fieldName, objectName) {
-	    const fullFieldName = objectName ? `${objectName}.${fieldName}` : fieldName;
-	    if (fieldName in obj) {
-	        if (!(0, duration_1.isDuration)(obj[fieldName])) {
-	            throw new Error(`outlier detection config ${fullFieldName} parse error: expected Duration, got ${typeof obj[fieldName]}`);
-	        }
-	        if (!(obj[fieldName].seconds >= 0 &&
-	            obj[fieldName].seconds <= 315576000000 &&
-	            obj[fieldName].nanos >= 0 &&
-	            obj[fieldName].nanos <= 999999999)) {
-	            throw new Error(`outlier detection config ${fullFieldName} parse error: values out of range for non-negative Duaration`);
-	        }
-	    }
-	}
-	function validatePercentage(obj, fieldName, objectName) {
-	    const fullFieldName = objectName ? `${objectName}.${fieldName}` : fieldName;
-	    validateFieldType(obj, fieldName, 'number', objectName);
-	    if (fieldName in obj && !(obj[fieldName] >= 0 && obj[fieldName] <= 100)) {
-	        throw new Error(`outlier detection config ${fullFieldName} parse error: value out of range for percentage (0-100)`);
-	    }
-	}
-	class OutlierDetectionLoadBalancingConfig {
-	    constructor(intervalMs, baseEjectionTimeMs, maxEjectionTimeMs, maxEjectionPercent, successRateEjection, failurePercentageEjection, childPolicy) {
-	        this.childPolicy = childPolicy;
-	        if (childPolicy.length > 0 &&
-	            childPolicy[0].getLoadBalancerName() === 'pick_first') {
-	            throw new Error('outlier_detection LB policy cannot have a pick_first child policy');
-	        }
-	        this.intervalMs = intervalMs !== null && intervalMs !== void 0 ? intervalMs : 10000;
-	        this.baseEjectionTimeMs = baseEjectionTimeMs !== null && baseEjectionTimeMs !== void 0 ? baseEjectionTimeMs : 30000;
-	        this.maxEjectionTimeMs = maxEjectionTimeMs !== null && maxEjectionTimeMs !== void 0 ? maxEjectionTimeMs : 300000;
-	        this.maxEjectionPercent = maxEjectionPercent !== null && maxEjectionPercent !== void 0 ? maxEjectionPercent : 10;
-	        this.successRateEjection = successRateEjection
-	            ? Object.assign(Object.assign({}, defaultSuccessRateEjectionConfig), successRateEjection) : null;
-	        this.failurePercentageEjection = failurePercentageEjection
-	            ? Object.assign(Object.assign({}, defaultFailurePercentageEjectionConfig), failurePercentageEjection) : null;
-	    }
-	    getLoadBalancerName() {
-	        return TYPE_NAME;
-	    }
-	    toJsonObject() {
-	        return {
-	            interval: (0, duration_1.msToDuration)(this.intervalMs),
-	            base_ejection_time: (0, duration_1.msToDuration)(this.baseEjectionTimeMs),
-	            max_ejection_time: (0, duration_1.msToDuration)(this.maxEjectionTimeMs),
-	            max_ejection_percent: this.maxEjectionPercent,
-	            success_rate_ejection: this.successRateEjection,
-	            failure_percentage_ejection: this.failurePercentageEjection,
-	            child_policy: this.childPolicy.map(policy => policy.toJsonObject()),
-	        };
-	    }
-	    getIntervalMs() {
-	        return this.intervalMs;
-	    }
-	    getBaseEjectionTimeMs() {
-	        return this.baseEjectionTimeMs;
-	    }
-	    getMaxEjectionTimeMs() {
-	        return this.maxEjectionTimeMs;
-	    }
-	    getMaxEjectionPercent() {
-	        return this.maxEjectionPercent;
-	    }
-	    getSuccessRateEjectionConfig() {
-	        return this.successRateEjection;
-	    }
-	    getFailurePercentageEjectionConfig() {
-	        return this.failurePercentageEjection;
-	    }
-	    getChildPolicy() {
-	        return this.childPolicy;
-	    }
-	    copyWithChildPolicy(childPolicy) {
-	        return new OutlierDetectionLoadBalancingConfig(this.intervalMs, this.baseEjectionTimeMs, this.maxEjectionTimeMs, this.maxEjectionPercent, this.successRateEjection, this.failurePercentageEjection, childPolicy);
-	    }
-	    static createFromJson(obj) {
-	        var _a;
-	        validatePositiveDuration(obj, 'interval');
-	        validatePositiveDuration(obj, 'base_ejection_time');
-	        validatePositiveDuration(obj, 'max_ejection_time');
-	        validatePercentage(obj, 'max_ejection_percent');
-	        if ('success_rate_ejection' in obj) {
-	            if (typeof obj.success_rate_ejection !== 'object') {
-	                throw new Error('outlier detection config success_rate_ejection must be an object');
-	            }
-	            validateFieldType(obj.success_rate_ejection, 'stdev_factor', 'number', 'success_rate_ejection');
-	            validatePercentage(obj.success_rate_ejection, 'enforcement_percentage', 'success_rate_ejection');
-	            validateFieldType(obj.success_rate_ejection, 'minimum_hosts', 'number', 'success_rate_ejection');
-	            validateFieldType(obj.success_rate_ejection, 'request_volume', 'number', 'success_rate_ejection');
-	        }
-	        if ('failure_percentage_ejection' in obj) {
-	            if (typeof obj.failure_percentage_ejection !== 'object') {
-	                throw new Error('outlier detection config failure_percentage_ejection must be an object');
-	            }
-	            validatePercentage(obj.failure_percentage_ejection, 'threshold', 'failure_percentage_ejection');
-	            validatePercentage(obj.failure_percentage_ejection, 'enforcement_percentage', 'failure_percentage_ejection');
-	            validateFieldType(obj.failure_percentage_ejection, 'minimum_hosts', 'number', 'failure_percentage_ejection');
-	            validateFieldType(obj.failure_percentage_ejection, 'request_volume', 'number', 'failure_percentage_ejection');
-	        }
-	        return new OutlierDetectionLoadBalancingConfig(obj.interval ? (0, duration_1.durationToMs)(obj.interval) : null, obj.base_ejection_time ? (0, duration_1.durationToMs)(obj.base_ejection_time) : null, obj.max_ejection_time ? (0, duration_1.durationToMs)(obj.max_ejection_time) : null, (_a = obj.max_ejection_percent) !== null && _a !== void 0 ? _a : null, obj.success_rate_ejection, obj.failure_percentage_ejection, obj.child_policy.map(load_balancer_1.validateLoadBalancingConfig));
-	    }
-	}
-	loadBalancerOutlierDetection.OutlierDetectionLoadBalancingConfig = OutlierDetectionLoadBalancingConfig;
-	class OutlierDetectionSubchannelWrapper extends subchannel_interface_1.BaseSubchannelWrapper {
-	    constructor(childSubchannel, mapEntry) {
-	        super(childSubchannel);
-	        this.mapEntry = mapEntry;
-	        this.stateListeners = [];
-	        this.ejected = false;
-	        this.refCount = 0;
-	        this.childSubchannelState = childSubchannel.getConnectivityState();
-	        childSubchannel.addConnectivityStateListener((subchannel, previousState, newState, keepaliveTime) => {
-	            this.childSubchannelState = newState;
-	            if (!this.ejected) {
-	                for (const listener of this.stateListeners) {
-	                    listener(this, previousState, newState, keepaliveTime);
-	                }
-	            }
-	        });
-	    }
-	    getConnectivityState() {
-	        if (this.ejected) {
-	            return connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE;
-	        }
-	        else {
-	            return this.childSubchannelState;
-	        }
-	    }
-	    /**
-	     * Add a listener function to be called whenever the wrapper's
-	     * connectivity state changes.
-	     * @param listener
-	     */
-	    addConnectivityStateListener(listener) {
-	        this.stateListeners.push(listener);
-	    }
-	    /**
-	     * Remove a listener previously added with `addConnectivityStateListener`
-	     * @param listener A reference to a function previously passed to
-	     *     `addConnectivityStateListener`
-	     */
-	    removeConnectivityStateListener(listener) {
-	        const listenerIndex = this.stateListeners.indexOf(listener);
-	        if (listenerIndex > -1) {
-	            this.stateListeners.splice(listenerIndex, 1);
-	        }
-	    }
-	    ref() {
-	        this.child.ref();
-	        this.refCount += 1;
-	    }
-	    unref() {
-	        this.child.unref();
-	        this.refCount -= 1;
-	        if (this.refCount <= 0) {
-	            if (this.mapEntry) {
-	                const index = this.mapEntry.subchannelWrappers.indexOf(this);
-	                if (index >= 0) {
-	                    this.mapEntry.subchannelWrappers.splice(index, 1);
-	                }
-	            }
-	        }
-	    }
-	    eject() {
-	        this.ejected = true;
-	        for (const listener of this.stateListeners) {
-	            listener(this, this.childSubchannelState, connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE, -1);
-	        }
-	    }
-	    uneject() {
-	        this.ejected = false;
-	        for (const listener of this.stateListeners) {
-	            listener(this, connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE, this.childSubchannelState, -1);
-	        }
-	    }
-	    getMapEntry() {
-	        return this.mapEntry;
-	    }
-	    getWrappedSubchannel() {
-	        return this.child;
-	    }
-	}
-	function createEmptyBucket() {
-	    return {
-	        success: 0,
-	        failure: 0,
-	    };
-	}
-	class CallCounter {
-	    constructor() {
-	        this.activeBucket = createEmptyBucket();
-	        this.inactiveBucket = createEmptyBucket();
-	    }
-	    addSuccess() {
-	        this.activeBucket.success += 1;
-	    }
-	    addFailure() {
-	        this.activeBucket.failure += 1;
-	    }
-	    switchBuckets() {
-	        this.inactiveBucket = this.activeBucket;
-	        this.activeBucket = createEmptyBucket();
-	    }
-	    getLastSuccesses() {
-	        return this.inactiveBucket.success;
-	    }
-	    getLastFailures() {
-	        return this.inactiveBucket.failure;
-	    }
-	}
-	class OutlierDetectionPicker {
-	    constructor(wrappedPicker, countCalls) {
-	        this.wrappedPicker = wrappedPicker;
-	        this.countCalls = countCalls;
-	    }
-	    pick(pickArgs) {
-	        const wrappedPick = this.wrappedPicker.pick(pickArgs);
-	        if (wrappedPick.pickResultType === picker_1.PickResultType.COMPLETE) {
-	            const subchannelWrapper = wrappedPick.subchannel;
-	            const mapEntry = subchannelWrapper.getMapEntry();
-	            if (mapEntry) {
-	                let onCallEnded = wrappedPick.onCallEnded;
-	                if (this.countCalls) {
-	                    onCallEnded = statusCode => {
-	                        var _a;
-	                        if (statusCode === constants_1.Status.OK) {
-	                            mapEntry.counter.addSuccess();
-	                        }
-	                        else {
-	                            mapEntry.counter.addFailure();
-	                        }
-	                        (_a = wrappedPick.onCallEnded) === null || _a === void 0 ? void 0 : _a.call(wrappedPick, statusCode);
-	                    };
-	                }
-	                return Object.assign(Object.assign({}, wrappedPick), { subchannel: subchannelWrapper.getWrappedSubchannel(), onCallEnded: onCallEnded });
-	            }
-	            else {
-	                return Object.assign(Object.assign({}, wrappedPick), { subchannel: subchannelWrapper.getWrappedSubchannel() });
-	            }
-	        }
-	        else {
-	            return wrappedPick;
-	        }
-	    }
-	}
-	class OutlierDetectionLoadBalancer {
-	    constructor(channelControlHelper) {
-	        this.addressMap = new Map();
-	        this.latestConfig = null;
-	        this.timerStartTime = null;
-	        this.childBalancer = new load_balancer_child_handler_1.ChildLoadBalancerHandler((0, experimental_1.createChildChannelControlHelper)(channelControlHelper, {
-	            createSubchannel: (subchannelAddress, subchannelArgs) => {
-	                const originalSubchannel = channelControlHelper.createSubchannel(subchannelAddress, subchannelArgs);
-	                const mapEntry = this.addressMap.get((0, subchannel_address_1.subchannelAddressToString)(subchannelAddress));
-	                const subchannelWrapper = new OutlierDetectionSubchannelWrapper(originalSubchannel, mapEntry);
-	                if ((mapEntry === null || mapEntry === void 0 ? void 0 : mapEntry.currentEjectionTimestamp) !== null) {
-	                    // If the address is ejected, propagate that to the new subchannel wrapper
-	                    subchannelWrapper.eject();
-	                }
-	                mapEntry === null || mapEntry === void 0 ? void 0 : mapEntry.subchannelWrappers.push(subchannelWrapper);
-	                return subchannelWrapper;
-	            },
-	            updateState: (connectivityState, picker) => {
-	                if (connectivityState === connectivity_state_1.ConnectivityState.READY) {
-	                    channelControlHelper.updateState(connectivityState, new OutlierDetectionPicker(picker, this.isCountingEnabled()));
-	                }
-	                else {
-	                    channelControlHelper.updateState(connectivityState, picker);
-	                }
-	            },
-	        }));
-	        this.ejectionTimer = setInterval(() => { }, 0);
-	        clearInterval(this.ejectionTimer);
-	    }
-	    isCountingEnabled() {
-	        return (this.latestConfig !== null &&
-	            (this.latestConfig.getSuccessRateEjectionConfig() !== null ||
-	                this.latestConfig.getFailurePercentageEjectionConfig() !== null));
-	    }
-	    getCurrentEjectionPercent() {
-	        let ejectionCount = 0;
-	        for (const mapEntry of this.addressMap.values()) {
-	            if (mapEntry.currentEjectionTimestamp !== null) {
-	                ejectionCount += 1;
-	            }
-	        }
-	        return (ejectionCount * 100) / this.addressMap.size;
-	    }
-	    runSuccessRateCheck(ejectionTimestamp) {
-	        if (!this.latestConfig) {
-	            return;
-	        }
-	        const successRateConfig = this.latestConfig.getSuccessRateEjectionConfig();
-	        if (!successRateConfig) {
-	            return;
-	        }
-	        trace('Running success rate check');
-	        // Step 1
-	        const targetRequestVolume = successRateConfig.request_volume;
-	        let addresesWithTargetVolume = 0;
-	        const successRates = [];
-	        for (const [address, mapEntry] of this.addressMap) {
-	            const successes = mapEntry.counter.getLastSuccesses();
-	            const failures = mapEntry.counter.getLastFailures();
-	            trace('Stats for ' +
-	                address +
-	                ': successes=' +
-	                successes +
-	                ' failures=' +
-	                failures +
-	                ' targetRequestVolume=' +
-	                targetRequestVolume);
-	            if (successes + failures >= targetRequestVolume) {
-	                addresesWithTargetVolume += 1;
-	                successRates.push(successes / (successes + failures));
-	            }
-	        }
-	        trace('Found ' +
-	            addresesWithTargetVolume +
-	            ' success rate candidates; currentEjectionPercent=' +
-	            this.getCurrentEjectionPercent() +
-	            ' successRates=[' +
-	            successRates +
-	            ']');
-	        if (addresesWithTargetVolume < successRateConfig.minimum_hosts) {
-	            return;
-	        }
-	        // Step 2
-	        const successRateMean = successRates.reduce((a, b) => a + b) / successRates.length;
-	        let successRateDeviationSum = 0;
-	        for (const rate of successRates) {
-	            const deviation = rate - successRateMean;
-	            successRateDeviationSum += deviation * deviation;
-	        }
-	        const successRateVariance = successRateDeviationSum / successRates.length;
-	        const successRateStdev = Math.sqrt(successRateVariance);
-	        const ejectionThreshold = successRateMean -
-	            successRateStdev * (successRateConfig.stdev_factor / 1000);
-	        trace('stdev=' + successRateStdev + ' ejectionThreshold=' + ejectionThreshold);
-	        // Step 3
-	        for (const [address, mapEntry] of this.addressMap.entries()) {
-	            // Step 3.i
-	            if (this.getCurrentEjectionPercent() >=
-	                this.latestConfig.getMaxEjectionPercent()) {
-	                break;
-	            }
-	            // Step 3.ii
-	            const successes = mapEntry.counter.getLastSuccesses();
-	            const failures = mapEntry.counter.getLastFailures();
-	            if (successes + failures < targetRequestVolume) {
-	                continue;
-	            }
-	            // Step 3.iii
-	            const successRate = successes / (successes + failures);
-	            trace('Checking candidate ' + address + ' successRate=' + successRate);
-	            if (successRate < ejectionThreshold) {
-	                const randomNumber = Math.random() * 100;
-	                trace('Candidate ' +
-	                    address +
-	                    ' randomNumber=' +
-	                    randomNumber +
-	                    ' enforcement_percentage=' +
-	                    successRateConfig.enforcement_percentage);
-	                if (randomNumber < successRateConfig.enforcement_percentage) {
-	                    trace('Ejecting candidate ' + address);
-	                    this.eject(mapEntry, ejectionTimestamp);
-	                }
-	            }
-	        }
-	    }
-	    runFailurePercentageCheck(ejectionTimestamp) {
-	        if (!this.latestConfig) {
-	            return;
-	        }
-	        const failurePercentageConfig = this.latestConfig.getFailurePercentageEjectionConfig();
-	        if (!failurePercentageConfig) {
-	            return;
-	        }
-	        trace('Running failure percentage check. threshold=' +
-	            failurePercentageConfig.threshold +
-	            ' request volume threshold=' +
-	            failurePercentageConfig.request_volume);
-	        // Step 1
-	        let addressesWithTargetVolume = 0;
-	        for (const mapEntry of this.addressMap.values()) {
-	            const successes = mapEntry.counter.getLastSuccesses();
-	            const failures = mapEntry.counter.getLastFailures();
-	            if (successes + failures >= failurePercentageConfig.request_volume) {
-	                addressesWithTargetVolume += 1;
-	            }
-	        }
-	        if (addressesWithTargetVolume < failurePercentageConfig.minimum_hosts) {
-	            return;
-	        }
-	        // Step 2
-	        for (const [address, mapEntry] of this.addressMap.entries()) {
-	            // Step 2.i
-	            if (this.getCurrentEjectionPercent() >=
-	                this.latestConfig.getMaxEjectionPercent()) {
-	                break;
-	            }
-	            // Step 2.ii
-	            const successes = mapEntry.counter.getLastSuccesses();
-	            const failures = mapEntry.counter.getLastFailures();
-	            trace('Candidate successes=' + successes + ' failures=' + failures);
-	            if (successes + failures < failurePercentageConfig.request_volume) {
-	                continue;
-	            }
-	            // Step 2.iii
-	            const failurePercentage = (failures * 100) / (failures + successes);
-	            if (failurePercentage > failurePercentageConfig.threshold) {
-	                const randomNumber = Math.random() * 100;
-	                trace('Candidate ' +
-	                    address +
-	                    ' randomNumber=' +
-	                    randomNumber +
-	                    ' enforcement_percentage=' +
-	                    failurePercentageConfig.enforcement_percentage);
-	                if (randomNumber < failurePercentageConfig.enforcement_percentage) {
-	                    trace('Ejecting candidate ' + address);
-	                    this.eject(mapEntry, ejectionTimestamp);
-	                }
-	            }
-	        }
-	    }
-	    eject(mapEntry, ejectionTimestamp) {
-	        mapEntry.currentEjectionTimestamp = new Date();
-	        mapEntry.ejectionTimeMultiplier += 1;
-	        for (const subchannelWrapper of mapEntry.subchannelWrappers) {
-	            subchannelWrapper.eject();
-	        }
-	    }
-	    uneject(mapEntry) {
-	        mapEntry.currentEjectionTimestamp = null;
-	        for (const subchannelWrapper of mapEntry.subchannelWrappers) {
-	            subchannelWrapper.uneject();
-	        }
-	    }
-	    switchAllBuckets() {
-	        for (const mapEntry of this.addressMap.values()) {
-	            mapEntry.counter.switchBuckets();
-	        }
-	    }
-	    startTimer(delayMs) {
-	        var _a, _b;
-	        this.ejectionTimer = setTimeout(() => this.runChecks(), delayMs);
-	        (_b = (_a = this.ejectionTimer).unref) === null || _b === void 0 ? void 0 : _b.call(_a);
-	    }
-	    runChecks() {
-	        const ejectionTimestamp = new Date();
-	        trace('Ejection timer running');
-	        this.switchAllBuckets();
-	        if (!this.latestConfig) {
-	            return;
-	        }
-	        this.timerStartTime = ejectionTimestamp;
-	        this.startTimer(this.latestConfig.getIntervalMs());
-	        this.runSuccessRateCheck(ejectionTimestamp);
-	        this.runFailurePercentageCheck(ejectionTimestamp);
-	        for (const [address, mapEntry] of this.addressMap.entries()) {
-	            if (mapEntry.currentEjectionTimestamp === null) {
-	                if (mapEntry.ejectionTimeMultiplier > 0) {
-	                    mapEntry.ejectionTimeMultiplier -= 1;
-	                }
-	            }
-	            else {
-	                const baseEjectionTimeMs = this.latestConfig.getBaseEjectionTimeMs();
-	                const maxEjectionTimeMs = this.latestConfig.getMaxEjectionTimeMs();
-	                const returnTime = new Date(mapEntry.currentEjectionTimestamp.getTime());
-	                returnTime.setMilliseconds(returnTime.getMilliseconds() +
-	                    Math.min(baseEjectionTimeMs * mapEntry.ejectionTimeMultiplier, Math.max(baseEjectionTimeMs, maxEjectionTimeMs)));
-	                if (returnTime < new Date()) {
-	                    trace('Unejecting ' + address);
-	                    this.uneject(mapEntry);
-	                }
-	            }
-	        }
-	    }
-	    updateAddressList(addressList, lbConfig, attributes) {
-	        if (!(lbConfig instanceof OutlierDetectionLoadBalancingConfig)) {
-	            return;
-	        }
-	        const subchannelAddresses = new Set();
-	        for (const address of addressList) {
-	            subchannelAddresses.add((0, subchannel_address_1.subchannelAddressToString)(address));
-	        }
-	        for (const address of subchannelAddresses) {
-	            if (!this.addressMap.has(address)) {
-	                trace('Adding map entry for ' + address);
-	                this.addressMap.set(address, {
-	                    counter: new CallCounter(),
-	                    currentEjectionTimestamp: null,
-	                    ejectionTimeMultiplier: 0,
-	                    subchannelWrappers: [],
-	                });
-	            }
-	        }
-	        for (const key of this.addressMap.keys()) {
-	            if (!subchannelAddresses.has(key)) {
-	                trace('Removing map entry for ' + key);
-	                this.addressMap.delete(key);
-	            }
-	        }
-	        const childPolicy = (0, load_balancer_1.getFirstUsableConfig)(lbConfig.getChildPolicy(), true);
-	        this.childBalancer.updateAddressList(addressList, childPolicy, attributes);
-	        if (lbConfig.getSuccessRateEjectionConfig() ||
-	            lbConfig.getFailurePercentageEjectionConfig()) {
-	            if (this.timerStartTime) {
-	                trace('Previous timer existed. Replacing timer');
-	                clearTimeout(this.ejectionTimer);
-	                const remainingDelay = lbConfig.getIntervalMs() -
-	                    (new Date().getTime() - this.timerStartTime.getTime());
-	                this.startTimer(remainingDelay);
-	            }
-	            else {
-	                trace('Starting new timer');
-	                this.timerStartTime = new Date();
-	                this.startTimer(lbConfig.getIntervalMs());
-	                this.switchAllBuckets();
-	            }
-	        }
-	        else {
-	            trace('Counting disabled. Cancelling timer.');
-	            this.timerStartTime = null;
-	            clearTimeout(this.ejectionTimer);
-	            for (const mapEntry of this.addressMap.values()) {
-	                this.uneject(mapEntry);
-	                mapEntry.ejectionTimeMultiplier = 0;
-	            }
-	        }
-	        this.latestConfig = lbConfig;
-	    }
-	    exitIdle() {
-	        this.childBalancer.exitIdle();
-	    }
-	    resetBackoff() {
-	        this.childBalancer.resetBackoff();
-	    }
-	    destroy() {
-	        clearTimeout(this.ejectionTimer);
-	        this.childBalancer.destroy();
-	    }
-	    getTypeName() {
-	        return TYPE_NAME;
-	    }
-	}
-	loadBalancerOutlierDetection.OutlierDetectionLoadBalancer = OutlierDetectionLoadBalancer;
-	function setup() {
-	    if (OUTLIER_DETECTION_ENABLED) {
-	        (0, experimental_1.registerLoadBalancerType)(TYPE_NAME, OutlierDetectionLoadBalancer, OutlierDetectionLoadBalancingConfig);
-	    }
-	}
-	loadBalancerOutlierDetection.setup = setup;
-	
-	return loadBalancerOutlierDetection;
-}
-
-var hasRequiredExperimental;
-
-function requireExperimental () {
-	if (hasRequiredExperimental) return experimental;
-	hasRequiredExperimental = 1;
-	(function (exports) {
-		Object.defineProperty(exports, "__esModule", { value: true });
-		exports.OutlierDetectionLoadBalancingConfig = exports.BaseSubchannelWrapper = exports.registerAdminService = exports.FilterStackFactory = exports.BaseFilter = exports.PickResultType = exports.QueuePicker = exports.UnavailablePicker = exports.ChildLoadBalancerHandler = exports.subchannelAddressToString = exports.validateLoadBalancingConfig = exports.getFirstUsableConfig = exports.registerLoadBalancerType = exports.createChildChannelControlHelper = exports.BackoffTimeout = exports.durationToMs = exports.uriToString = exports.createResolver = exports.registerResolver = exports.log = exports.trace = void 0;
-		var logging_1 = logging$9;
-		Object.defineProperty(exports, "trace", { enumerable: true, get: function () { return logging_1.trace; } });
-		Object.defineProperty(exports, "log", { enumerable: true, get: function () { return logging_1.log; } });
-		var resolver_1 = resolver;
-		Object.defineProperty(exports, "registerResolver", { enumerable: true, get: function () { return resolver_1.registerResolver; } });
-		Object.defineProperty(exports, "createResolver", { enumerable: true, get: function () { return resolver_1.createResolver; } });
-		var uri_parser_1 = uriParser;
-		Object.defineProperty(exports, "uriToString", { enumerable: true, get: function () { return uri_parser_1.uriToString; } });
-		var duration_1 = requireDuration();
-		Object.defineProperty(exports, "durationToMs", { enumerable: true, get: function () { return duration_1.durationToMs; } });
-		var backoff_timeout_1 = requireBackoffTimeout();
-		Object.defineProperty(exports, "BackoffTimeout", { enumerable: true, get: function () { return backoff_timeout_1.BackoffTimeout; } });
-		var load_balancer_1 = requireLoadBalancer();
-		Object.defineProperty(exports, "createChildChannelControlHelper", { enumerable: true, get: function () { return load_balancer_1.createChildChannelControlHelper; } });
-		Object.defineProperty(exports, "registerLoadBalancerType", { enumerable: true, get: function () { return load_balancer_1.registerLoadBalancerType; } });
-		Object.defineProperty(exports, "getFirstUsableConfig", { enumerable: true, get: function () { return load_balancer_1.getFirstUsableConfig; } });
-		Object.defineProperty(exports, "validateLoadBalancingConfig", { enumerable: true, get: function () { return load_balancer_1.validateLoadBalancingConfig; } });
-		var subchannel_address_1 = subchannelAddress;
-		Object.defineProperty(exports, "subchannelAddressToString", { enumerable: true, get: function () { return subchannel_address_1.subchannelAddressToString; } });
-		var load_balancer_child_handler_1 = requireLoadBalancerChildHandler();
-		Object.defineProperty(exports, "ChildLoadBalancerHandler", { enumerable: true, get: function () { return load_balancer_child_handler_1.ChildLoadBalancerHandler; } });
-		var picker_1 = requirePicker();
-		Object.defineProperty(exports, "UnavailablePicker", { enumerable: true, get: function () { return picker_1.UnavailablePicker; } });
-		Object.defineProperty(exports, "QueuePicker", { enumerable: true, get: function () { return picker_1.QueuePicker; } });
-		Object.defineProperty(exports, "PickResultType", { enumerable: true, get: function () { return picker_1.PickResultType; } });
-		var filter_1 = requireFilter();
-		Object.defineProperty(exports, "BaseFilter", { enumerable: true, get: function () { return filter_1.BaseFilter; } });
-		var filter_stack_1 = requireFilterStack();
-		Object.defineProperty(exports, "FilterStackFactory", { enumerable: true, get: function () { return filter_stack_1.FilterStackFactory; } });
-		var admin_1 = requireAdmin();
-		Object.defineProperty(exports, "registerAdminService", { enumerable: true, get: function () { return admin_1.registerAdminService; } });
-		var subchannel_interface_1 = requireSubchannelInterface();
-		Object.defineProperty(exports, "BaseSubchannelWrapper", { enumerable: true, get: function () { return subchannel_interface_1.BaseSubchannelWrapper; } });
-		var load_balancer_outlier_detection_1 = requireLoadBalancerOutlierDetection();
-		Object.defineProperty(exports, "OutlierDetectionLoadBalancingConfig", { enumerable: true, get: function () { return load_balancer_outlier_detection_1.OutlierDetectionLoadBalancingConfig; } });
-		
-	} (experimental));
-	return experimental;
-}
-
-var resolverUds = {};
-
-var hasRequiredResolverUds;
-
-function requireResolverUds () {
-	if (hasRequiredResolverUds) return resolverUds;
-	hasRequiredResolverUds = 1;
-	/*
-	 * Copyright 2019 gRPC authors.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 *     http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 */
-	Object.defineProperty(resolverUds, "__esModule", { value: true });
-	resolverUds.setup = void 0;
-	const resolver_1 = resolver;
-	class UdsResolver {
-	    constructor(target, listener, channelOptions) {
-	        this.listener = listener;
-	        this.addresses = [];
-	        this.hasReturnedResult = false;
-	        let path;
-	        if (target.authority === '') {
-	            path = '/' + target.path;
-	        }
-	        else {
-	            path = target.path;
-	        }
-	        this.addresses = [{ path }];
-	    }
-	    updateResolution() {
-	        if (!this.hasReturnedResult) {
-	            this.hasReturnedResult = true;
-	            process.nextTick(this.listener.onSuccessfulResolution, this.addresses, null, null, null, {});
-	        }
-	    }
-	    destroy() {
-	        // This resolver owns no resources, so we do nothing here.
-	    }
-	    static getDefaultAuthority(target) {
-	        return 'localhost';
-	    }
-	}
-	function setup() {
-	    (0, resolver_1.registerResolver)('unix', UdsResolver);
-	}
-	resolverUds.setup = setup;
-	
-	return resolverUds;
-}
-
-var resolverIp = {};
-
-var hasRequiredResolverIp;
-
-function requireResolverIp () {
-	if (hasRequiredResolverIp) return resolverIp;
-	hasRequiredResolverIp = 1;
-	/*
-	 * Copyright 2021 gRPC authors.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 *     http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 */
-	Object.defineProperty(resolverIp, "__esModule", { value: true });
-	resolverIp.setup = void 0;
-	const net_1 = require$$0$3;
-	const constants_1 = constants;
-	const metadata_1 = metadata;
-	const resolver_1 = resolver;
-	const uri_parser_1 = uriParser;
-	const logging = logging$9;
-	const TRACER_NAME = 'ip_resolver';
-	function trace(text) {
-	    logging.trace(constants_1.LogVerbosity.DEBUG, TRACER_NAME, text);
-	}
-	const IPV4_SCHEME = 'ipv4';
-	const IPV6_SCHEME = 'ipv6';
-	/**
-	 * The default TCP port to connect to if not explicitly specified in the target.
-	 */
-	const DEFAULT_PORT = 443;
-	class IpResolver {
-	    constructor(target, listener, channelOptions) {
-	        var _a;
-	        this.listener = listener;
-	        this.addresses = [];
-	        this.error = null;
-	        this.hasReturnedResult = false;
-	        trace('Resolver constructed for target ' + (0, uri_parser_1.uriToString)(target));
-	        const addresses = [];
-	        if (!(target.scheme === IPV4_SCHEME || target.scheme === IPV6_SCHEME)) {
-	            this.error = {
-	                code: constants_1.Status.UNAVAILABLE,
-	                details: `Unrecognized scheme ${target.scheme} in IP resolver`,
-	                metadata: new metadata_1.Metadata(),
-	            };
-	            return;
-	        }
-	        const pathList = target.path.split(',');
-	        for (const path of pathList) {
-	            const hostPort = (0, uri_parser_1.splitHostPort)(path);
-	            if (hostPort === null) {
-	                this.error = {
-	                    code: constants_1.Status.UNAVAILABLE,
-	                    details: `Failed to parse ${target.scheme} address ${path}`,
-	                    metadata: new metadata_1.Metadata(),
-	                };
-	                return;
-	            }
-	            if ((target.scheme === IPV4_SCHEME && !(0, net_1.isIPv4)(hostPort.host)) ||
-	                (target.scheme === IPV6_SCHEME && !(0, net_1.isIPv6)(hostPort.host))) {
-	                this.error = {
-	                    code: constants_1.Status.UNAVAILABLE,
-	                    details: `Failed to parse ${target.scheme} address ${path}`,
-	                    metadata: new metadata_1.Metadata(),
-	                };
-	                return;
-	            }
-	            addresses.push({
-	                host: hostPort.host,
-	                port: (_a = hostPort.port) !== null && _a !== void 0 ? _a : DEFAULT_PORT,
-	            });
-	        }
-	        this.addresses = addresses;
-	        trace('Parsed ' + target.scheme + ' address list ' + this.addresses);
-	    }
-	    updateResolution() {
-	        if (!this.hasReturnedResult) {
-	            this.hasReturnedResult = true;
-	            process.nextTick(() => {
-	                if (this.error) {
-	                    this.listener.onError(this.error);
-	                }
-	                else {
-	                    this.listener.onSuccessfulResolution(this.addresses, null, null, null, {});
-	                }
-	            });
-	        }
-	    }
-	    destroy() {
-	        this.hasReturnedResult = false;
-	    }
-	    static getDefaultAuthority(target) {
-	        return target.path.split(',')[0];
-	    }
-	}
-	function setup() {
-	    (0, resolver_1.registerResolver)(IPV4_SCHEME, IpResolver);
-	    (0, resolver_1.registerResolver)(IPV6_SCHEME, IpResolver);
-	}
-	resolverIp.setup = setup;
-	
-	return resolverIp;
-}
-
 var loadBalancerPickFirst = {};
 
 var hasRequiredLoadBalancerPickFirst;
@@ -30250,12 +30325,14 @@ function requireLoadBalancerPickFirst () {
 	 *
 	 */
 	Object.defineProperty(loadBalancerPickFirst, "__esModule", { value: true });
-	loadBalancerPickFirst.setup = loadBalancerPickFirst.PickFirstLoadBalancer = loadBalancerPickFirst.shuffled = loadBalancerPickFirst.PickFirstLoadBalancingConfig = void 0;
+	loadBalancerPickFirst.setup = loadBalancerPickFirst.LeafLoadBalancer = loadBalancerPickFirst.PickFirstLoadBalancer = loadBalancerPickFirst.shuffled = loadBalancerPickFirst.PickFirstLoadBalancingConfig = void 0;
 	const load_balancer_1 = requireLoadBalancer();
 	const connectivity_state_1 = connectivityState;
 	const picker_1 = requirePicker();
-	const logging = logging$9;
+	const logging = logging$8;
 	const constants_1 = constants;
+	const subchannel_address_1 = subchannelAddress;
+	const net_1 = require$$0$3;
 	const TRACER_NAME = 'pick_first';
 	function trace(text) {
 	    logging.trace(constants_1.LogVerbosity.DEBUG, TRACER_NAME, text);
@@ -30327,6 +30404,37 @@ function requireLoadBalancerPickFirst () {
 	    return result;
 	}
 	loadBalancerPickFirst.shuffled = shuffled;
+	/**
+	 * Interleave addresses in addressList by family in accordance with RFC-8304 section 4
+	 * @param addressList
+	 * @returns
+	 */
+	function interleaveAddressFamilies(addressList) {
+	    const result = [];
+	    const ipv6Addresses = [];
+	    const ipv4Addresses = [];
+	    const ipv6First = (0, subchannel_address_1.isTcpSubchannelAddress)(addressList[0]) && (0, net_1.isIPv6)(addressList[0].host);
+	    for (const address of addressList) {
+	        if ((0, subchannel_address_1.isTcpSubchannelAddress)(address) && (0, net_1.isIPv6)(address.host)) {
+	            ipv6Addresses.push(address);
+	        }
+	        else {
+	            ipv4Addresses.push(address);
+	        }
+	    }
+	    const firstList = ipv6First ? ipv6Addresses : ipv4Addresses;
+	    const secondList = ipv6First ? ipv4Addresses : ipv6Addresses;
+	    for (let i = 0; i < Math.max(firstList.length, secondList.length); i++) {
+	        if (i < firstList.length) {
+	            result.push(firstList[i]);
+	        }
+	        if (i < secondList.length) {
+	            result.push(secondList[i]);
+	        }
+	    }
+	    return result;
+	}
+	const REPORT_HEALTH_STATUS_OPTION_NAME = 'grpc-node.internal.pick-first.report_health_status';
 	class PickFirstLoadBalancer {
 	    /**
 	     * Load balancer that attempts to connect to each backend in the address list
@@ -30335,7 +30443,7 @@ function requireLoadBalancerPickFirst () {
 	     * @param channelControlHelper `ChannelControlHelper` instance provided by
 	     *     this load balancer's owner.
 	     */
-	    constructor(channelControlHelper) {
+	    constructor(channelControlHelper, options) {
 	        this.channelControlHelper = channelControlHelper;
 	        /**
 	         * The list of subchannels this load balancer is currently attempting to
@@ -30364,6 +30472,7 @@ function requireLoadBalancerPickFirst () {
 	        this.subchannelStateListener = (subchannel, previousState, newState, keepaliveTime, errorMessage) => {
 	            this.onSubchannelStateUpdate(subchannel, previousState, newState, errorMessage);
 	        };
+	        this.pickedSubchannelHealthListener = () => this.calculateAndReportNewState();
 	        this.triedAllSubchannels = false;
 	        /**
 	         * The LB policy enters sticky TRANSIENT_FAILURE mode when all
@@ -30385,13 +30494,21 @@ function requireLoadBalancerPickFirst () {
 	        this.latestAddressList = null;
 	        this.connectionDelayTimeout = setTimeout(() => { }, 0);
 	        clearTimeout(this.connectionDelayTimeout);
+	        this.reportHealthStatus = options[REPORT_HEALTH_STATUS_OPTION_NAME];
 	    }
 	    allChildrenHaveReportedTF() {
 	        return this.children.every(child => child.hasReportedTransientFailure);
 	    }
 	    calculateAndReportNewState() {
 	        if (this.currentPick) {
-	            this.updateState(connectivity_state_1.ConnectivityState.READY, new PickFirstPicker(this.currentPick));
+	            if (this.reportHealthStatus && !this.currentPick.isHealthy()) {
+	                this.updateState(connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE, new picker_1.UnavailablePicker({
+	                    details: `Picked subchannel ${this.currentPick.getAddress()} is unhealthy`,
+	                }));
+	            }
+	            else {
+	                this.updateState(connectivity_state_1.ConnectivityState.READY, new PickFirstPicker(this.currentPick));
+	            }
 	        }
 	        else if (this.children.length === 0) {
 	            this.updateState(connectivity_state_1.ConnectivityState.IDLE, new picker_1.QueuePicker(this));
@@ -30441,6 +30558,9 @@ function requireLoadBalancerPickFirst () {
 	            currentPick.unref();
 	            currentPick.removeConnectivityStateListener(this.subchannelStateListener);
 	            this.channelControlHelper.removeChannelzChild(currentPick.getChannelzRef());
+	            if (this.reportHealthStatus) {
+	                currentPick.removeHealthStateWatcher(this.pickedSubchannelHealthListener);
+	            }
 	        }
 	    }
 	    onSubchannelStateUpdate(subchannel, previousState, newState, errorMessage) {
@@ -30518,13 +30638,12 @@ function requireLoadBalancerPickFirst () {
 	        }
 	        trace('Pick subchannel with address ' + subchannel.getAddress());
 	        this.stickyTransientFailureMode = false;
-	        if (this.currentPick !== null) {
-	            this.currentPick.unref();
-	            this.channelControlHelper.removeChannelzChild(this.currentPick.getChannelzRef());
-	            this.currentPick.removeConnectivityStateListener(this.subchannelStateListener);
-	        }
+	        this.removeCurrentPick();
 	        this.currentPick = subchannel;
 	        subchannel.ref();
+	        if (this.reportHealthStatus) {
+	            subchannel.addHealthStateWatcher(this.pickedSubchannelHealthListener);
+	        }
 	        this.channelControlHelper.addChannelzChild(subchannel.getChannelzRef());
 	        this.resetSubchannelList();
 	        clearTimeout(this.connectionDelayTimeout);
@@ -30588,7 +30707,7 @@ function requireLoadBalancerPickFirst () {
 	        this.startNextSubchannelConnecting(0);
 	        this.calculateAndReportNewState();
 	    }
-	    updateAddressList(addressList, lbConfig) {
+	    updateAddressList(endpointList, lbConfig) {
 	        if (!(lbConfig instanceof PickFirstLoadBalancingConfig)) {
 	            return;
 	        }
@@ -30596,8 +30715,13 @@ function requireLoadBalancerPickFirst () {
 	         * previous update, to minimize churn. Now the DNS resolver is
 	         * rate-limited, so that is less of a concern. */
 	        if (lbConfig.getShuffleAddressList()) {
-	            addressList = shuffled(addressList);
+	            endpointList = shuffled(endpointList);
 	        }
+	        const rawAddressList = [].concat(...endpointList.map(endpoint => endpoint.addresses));
+	        if (rawAddressList.length === 0) {
+	            throw new Error('No addresses in endpoint list passed to pick_first');
+	        }
+	        const addressList = interleaveAddressFamilies(rawAddressList);
 	        this.latestAddressList = addressList;
 	        this.connectToAddressList(addressList);
 	    }
@@ -30619,6 +30743,55 @@ function requireLoadBalancerPickFirst () {
 	    }
 	}
 	loadBalancerPickFirst.PickFirstLoadBalancer = PickFirstLoadBalancer;
+	const LEAF_CONFIG = new PickFirstLoadBalancingConfig(false);
+	/**
+	 * This class handles the leaf load balancing operations for a single endpoint.
+	 * It is a thin wrapper around a PickFirstLoadBalancer with a different API
+	 * that more closely reflects how it will be used as a leaf balancer.
+	 */
+	class LeafLoadBalancer {
+	    constructor(endpoint, channelControlHelper, options) {
+	        this.endpoint = endpoint;
+	        this.latestState = connectivity_state_1.ConnectivityState.IDLE;
+	        const childChannelControlHelper = (0, load_balancer_1.createChildChannelControlHelper)(channelControlHelper, {
+	            updateState: (connectivityState, picker) => {
+	                this.latestState = connectivityState;
+	                this.latestPicker = picker;
+	                channelControlHelper.updateState(connectivityState, picker);
+	            },
+	        });
+	        this.pickFirstBalancer = new PickFirstLoadBalancer(childChannelControlHelper, Object.assign(Object.assign({}, options), { [REPORT_HEALTH_STATUS_OPTION_NAME]: true }));
+	        this.latestPicker = new picker_1.QueuePicker(this.pickFirstBalancer);
+	    }
+	    startConnecting() {
+	        this.pickFirstBalancer.updateAddressList([this.endpoint], LEAF_CONFIG);
+	    }
+	    /**
+	     * Update the endpoint associated with this LeafLoadBalancer to a new
+	     * endpoint. Does not trigger connection establishment if a connection
+	     * attempt is not already in progress.
+	     * @param newEndpoint
+	     */
+	    updateEndpoint(newEndpoint) {
+	        this.endpoint = newEndpoint;
+	        if (this.latestState !== connectivity_state_1.ConnectivityState.IDLE) {
+	            this.startConnecting();
+	        }
+	    }
+	    getConnectivityState() {
+	        return this.latestState;
+	    }
+	    getPicker() {
+	        return this.latestPicker;
+	    }
+	    getEndpoint() {
+	        return this.endpoint;
+	    }
+	    destroy() {
+	        this.pickFirstBalancer.destroy();
+	    }
+	}
+	loadBalancerPickFirst.LeafLoadBalancer = LeafLoadBalancer;
 	function setup() {
 	    (0, load_balancer_1.registerLoadBalancerType)(TYPE_NAME, PickFirstLoadBalancer, PickFirstLoadBalancingConfig);
 	    (0, load_balancer_1.registerDefaultLoadBalancerType)(TYPE_NAME);
@@ -30626,6 +30799,232 @@ function requireLoadBalancerPickFirst () {
 	loadBalancerPickFirst.setup = setup;
 	
 	return loadBalancerPickFirst;
+}
+
+var hasRequiredExperimental;
+
+function requireExperimental () {
+	if (hasRequiredExperimental) return experimental;
+	hasRequiredExperimental = 1;
+	(function (exports) {
+		Object.defineProperty(exports, "__esModule", { value: true });
+		exports.BaseSubchannelWrapper = exports.registerAdminService = exports.FilterStackFactory = exports.BaseFilter = exports.PickResultType = exports.QueuePicker = exports.UnavailablePicker = exports.ChildLoadBalancerHandler = exports.EndpointMap = exports.endpointHasAddress = exports.endpointToString = exports.subchannelAddressToString = exports.LeafLoadBalancer = exports.isLoadBalancerNameRegistered = exports.parseLoadBalancingConfig = exports.selectLbConfigFromList = exports.registerLoadBalancerType = exports.createChildChannelControlHelper = exports.BackoffTimeout = exports.durationToMs = exports.uriToString = exports.createResolver = exports.registerResolver = exports.log = exports.trace = void 0;
+		var logging_1 = logging$8;
+		Object.defineProperty(exports, "trace", { enumerable: true, get: function () { return logging_1.trace; } });
+		Object.defineProperty(exports, "log", { enumerable: true, get: function () { return logging_1.log; } });
+		var resolver_1 = resolver;
+		Object.defineProperty(exports, "registerResolver", { enumerable: true, get: function () { return resolver_1.registerResolver; } });
+		Object.defineProperty(exports, "createResolver", { enumerable: true, get: function () { return resolver_1.createResolver; } });
+		var uri_parser_1 = uriParser;
+		Object.defineProperty(exports, "uriToString", { enumerable: true, get: function () { return uri_parser_1.uriToString; } });
+		var duration_1 = requireDuration();
+		Object.defineProperty(exports, "durationToMs", { enumerable: true, get: function () { return duration_1.durationToMs; } });
+		var backoff_timeout_1 = requireBackoffTimeout();
+		Object.defineProperty(exports, "BackoffTimeout", { enumerable: true, get: function () { return backoff_timeout_1.BackoffTimeout; } });
+		var load_balancer_1 = requireLoadBalancer();
+		Object.defineProperty(exports, "createChildChannelControlHelper", { enumerable: true, get: function () { return load_balancer_1.createChildChannelControlHelper; } });
+		Object.defineProperty(exports, "registerLoadBalancerType", { enumerable: true, get: function () { return load_balancer_1.registerLoadBalancerType; } });
+		Object.defineProperty(exports, "selectLbConfigFromList", { enumerable: true, get: function () { return load_balancer_1.selectLbConfigFromList; } });
+		Object.defineProperty(exports, "parseLoadBalancingConfig", { enumerable: true, get: function () { return load_balancer_1.parseLoadBalancingConfig; } });
+		Object.defineProperty(exports, "isLoadBalancerNameRegistered", { enumerable: true, get: function () { return load_balancer_1.isLoadBalancerNameRegistered; } });
+		var load_balancer_pick_first_1 = requireLoadBalancerPickFirst();
+		Object.defineProperty(exports, "LeafLoadBalancer", { enumerable: true, get: function () { return load_balancer_pick_first_1.LeafLoadBalancer; } });
+		var subchannel_address_1 = subchannelAddress;
+		Object.defineProperty(exports, "subchannelAddressToString", { enumerable: true, get: function () { return subchannel_address_1.subchannelAddressToString; } });
+		Object.defineProperty(exports, "endpointToString", { enumerable: true, get: function () { return subchannel_address_1.endpointToString; } });
+		Object.defineProperty(exports, "endpointHasAddress", { enumerable: true, get: function () { return subchannel_address_1.endpointHasAddress; } });
+		Object.defineProperty(exports, "EndpointMap", { enumerable: true, get: function () { return subchannel_address_1.EndpointMap; } });
+		var load_balancer_child_handler_1 = requireLoadBalancerChildHandler();
+		Object.defineProperty(exports, "ChildLoadBalancerHandler", { enumerable: true, get: function () { return load_balancer_child_handler_1.ChildLoadBalancerHandler; } });
+		var picker_1 = requirePicker();
+		Object.defineProperty(exports, "UnavailablePicker", { enumerable: true, get: function () { return picker_1.UnavailablePicker; } });
+		Object.defineProperty(exports, "QueuePicker", { enumerable: true, get: function () { return picker_1.QueuePicker; } });
+		Object.defineProperty(exports, "PickResultType", { enumerable: true, get: function () { return picker_1.PickResultType; } });
+		var filter_1 = requireFilter();
+		Object.defineProperty(exports, "BaseFilter", { enumerable: true, get: function () { return filter_1.BaseFilter; } });
+		var filter_stack_1 = requireFilterStack();
+		Object.defineProperty(exports, "FilterStackFactory", { enumerable: true, get: function () { return filter_stack_1.FilterStackFactory; } });
+		var admin_1 = requireAdmin();
+		Object.defineProperty(exports, "registerAdminService", { enumerable: true, get: function () { return admin_1.registerAdminService; } });
+		var subchannel_interface_1 = requireSubchannelInterface();
+		Object.defineProperty(exports, "BaseSubchannelWrapper", { enumerable: true, get: function () { return subchannel_interface_1.BaseSubchannelWrapper; } });
+		
+	} (experimental));
+	return experimental;
+}
+
+var resolverUds = {};
+
+var hasRequiredResolverUds;
+
+function requireResolverUds () {
+	if (hasRequiredResolverUds) return resolverUds;
+	hasRequiredResolverUds = 1;
+	/*
+	 * Copyright 2019 gRPC authors.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 *     http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 */
+	Object.defineProperty(resolverUds, "__esModule", { value: true });
+	resolverUds.setup = void 0;
+	const resolver_1 = resolver;
+	class UdsResolver {
+	    constructor(target, listener, channelOptions) {
+	        this.listener = listener;
+	        this.hasReturnedResult = false;
+	        this.endpoints = [];
+	        let path;
+	        if (target.authority === '') {
+	            path = '/' + target.path;
+	        }
+	        else {
+	            path = target.path;
+	        }
+	        this.endpoints = [{ addresses: [{ path }] }];
+	    }
+	    updateResolution() {
+	        if (!this.hasReturnedResult) {
+	            this.hasReturnedResult = true;
+	            process.nextTick(this.listener.onSuccessfulResolution, this.endpoints, null, null, null, {});
+	        }
+	    }
+	    destroy() {
+	        // This resolver owns no resources, so we do nothing here.
+	    }
+	    static getDefaultAuthority(target) {
+	        return 'localhost';
+	    }
+	}
+	function setup() {
+	    (0, resolver_1.registerResolver)('unix', UdsResolver);
+	}
+	resolverUds.setup = setup;
+	
+	return resolverUds;
+}
+
+var resolverIp = {};
+
+var hasRequiredResolverIp;
+
+function requireResolverIp () {
+	if (hasRequiredResolverIp) return resolverIp;
+	hasRequiredResolverIp = 1;
+	/*
+	 * Copyright 2021 gRPC authors.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 *     http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 */
+	Object.defineProperty(resolverIp, "__esModule", { value: true });
+	resolverIp.setup = void 0;
+	const net_1 = require$$0$3;
+	const constants_1 = constants;
+	const metadata_1 = metadata;
+	const resolver_1 = resolver;
+	const uri_parser_1 = uriParser;
+	const logging = logging$8;
+	const TRACER_NAME = 'ip_resolver';
+	function trace(text) {
+	    logging.trace(constants_1.LogVerbosity.DEBUG, TRACER_NAME, text);
+	}
+	const IPV4_SCHEME = 'ipv4';
+	const IPV6_SCHEME = 'ipv6';
+	/**
+	 * The default TCP port to connect to if not explicitly specified in the target.
+	 */
+	const DEFAULT_PORT = 443;
+	class IpResolver {
+	    constructor(target, listener, channelOptions) {
+	        var _a;
+	        this.listener = listener;
+	        this.endpoints = [];
+	        this.error = null;
+	        this.hasReturnedResult = false;
+	        trace('Resolver constructed for target ' + (0, uri_parser_1.uriToString)(target));
+	        const addresses = [];
+	        if (!(target.scheme === IPV4_SCHEME || target.scheme === IPV6_SCHEME)) {
+	            this.error = {
+	                code: constants_1.Status.UNAVAILABLE,
+	                details: `Unrecognized scheme ${target.scheme} in IP resolver`,
+	                metadata: new metadata_1.Metadata(),
+	            };
+	            return;
+	        }
+	        const pathList = target.path.split(',');
+	        for (const path of pathList) {
+	            const hostPort = (0, uri_parser_1.splitHostPort)(path);
+	            if (hostPort === null) {
+	                this.error = {
+	                    code: constants_1.Status.UNAVAILABLE,
+	                    details: `Failed to parse ${target.scheme} address ${path}`,
+	                    metadata: new metadata_1.Metadata(),
+	                };
+	                return;
+	            }
+	            if ((target.scheme === IPV4_SCHEME && !(0, net_1.isIPv4)(hostPort.host)) ||
+	                (target.scheme === IPV6_SCHEME && !(0, net_1.isIPv6)(hostPort.host))) {
+	                this.error = {
+	                    code: constants_1.Status.UNAVAILABLE,
+	                    details: `Failed to parse ${target.scheme} address ${path}`,
+	                    metadata: new metadata_1.Metadata(),
+	                };
+	                return;
+	            }
+	            addresses.push({
+	                host: hostPort.host,
+	                port: (_a = hostPort.port) !== null && _a !== void 0 ? _a : DEFAULT_PORT,
+	            });
+	        }
+	        this.endpoints = addresses.map(address => ({ addresses: [address] }));
+	        trace('Parsed ' + target.scheme + ' address list ' + addresses);
+	    }
+	    updateResolution() {
+	        if (!this.hasReturnedResult) {
+	            this.hasReturnedResult = true;
+	            process.nextTick(() => {
+	                if (this.error) {
+	                    this.listener.onError(this.error);
+	                }
+	                else {
+	                    this.listener.onSuccessfulResolution(this.endpoints, null, null, null, {});
+	                }
+	            });
+	        }
+	    }
+	    destroy() {
+	        this.hasReturnedResult = false;
+	    }
+	    static getDefaultAuthority(target) {
+	        return target.path.split(',')[0];
+	    }
+	}
+	function setup() {
+	    (0, resolver_1.registerResolver)(IPV4_SCHEME, IpResolver);
+	    (0, resolver_1.registerResolver)(IPV6_SCHEME, IpResolver);
+	}
+	resolverIp.setup = setup;
+	
+	return resolverIp;
 }
 
 var loadBalancerRoundRobin = {};
@@ -30656,9 +31055,10 @@ function requireLoadBalancerRoundRobin () {
 	const load_balancer_1 = requireLoadBalancer();
 	const connectivity_state_1 = connectivityState;
 	const picker_1 = requirePicker();
-	const subchannel_address_1 = subchannelAddress;
-	const logging = logging$9;
+	const logging = logging$8;
 	const constants_1 = constants;
+	const subchannel_address_1 = subchannelAddress;
+	const load_balancer_pick_first_1 = requireLoadBalancerPickFirst();
 	const TRACER_NAME = 'round_robin';
 	function trace(text) {
 	    logging.trace(constants_1.LogVerbosity.DEBUG, TRACER_NAME, text);
@@ -30680,68 +31080,66 @@ function requireLoadBalancerRoundRobin () {
 	    }
 	}
 	class RoundRobinPicker {
-	    constructor(subchannelList, nextIndex = 0) {
-	        this.subchannelList = subchannelList;
+	    constructor(children, nextIndex = 0) {
+	        this.children = children;
 	        this.nextIndex = nextIndex;
 	    }
 	    pick(pickArgs) {
-	        const pickedSubchannel = this.subchannelList[this.nextIndex];
-	        this.nextIndex = (this.nextIndex + 1) % this.subchannelList.length;
-	        return {
-	            pickResultType: picker_1.PickResultType.COMPLETE,
-	            subchannel: pickedSubchannel,
-	            status: null,
-	            onCallStarted: null,
-	            onCallEnded: null,
-	        };
+	        const childPicker = this.children[this.nextIndex].picker;
+	        this.nextIndex = (this.nextIndex + 1) % this.children.length;
+	        return childPicker.pick(pickArgs);
 	    }
 	    /**
 	     * Check what the next subchannel returned would be. Used by the load
 	     * balancer implementation to preserve this part of the picker state if
 	     * possible when a subchannel connects or disconnects.
 	     */
-	    peekNextSubchannel() {
-	        return this.subchannelList[this.nextIndex];
+	    peekNextEndpoint() {
+	        return this.children[this.nextIndex].endpoint;
 	    }
 	}
 	class RoundRobinLoadBalancer {
-	    constructor(channelControlHelper) {
+	    constructor(channelControlHelper, options) {
 	        this.channelControlHelper = channelControlHelper;
-	        this.subchannels = [];
+	        this.options = options;
+	        this.children = [];
 	        this.currentState = connectivity_state_1.ConnectivityState.IDLE;
 	        this.currentReadyPicker = null;
+	        this.updatesPaused = false;
 	        this.lastError = null;
-	        this.subchannelStateListener = (subchannel, previousState, newState, keepaliveTime, errorMessage) => {
-	            this.calculateAndUpdateState();
-	            if (newState === connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE ||
-	                newState === connectivity_state_1.ConnectivityState.IDLE) {
-	                if (errorMessage) {
-	                    this.lastError = errorMessage;
-	                }
-	                this.channelControlHelper.requestReresolution();
-	                subchannel.startConnecting();
-	            }
-	        };
+	        this.childChannelControlHelper = (0, load_balancer_1.createChildChannelControlHelper)(channelControlHelper, {
+	            updateState: (connectivityState, picker) => {
+	                this.calculateAndUpdateState();
+	            },
+	        });
 	    }
-	    countSubchannelsWithState(state) {
-	        return this.subchannels.filter(subchannel => subchannel.getConnectivityState() === state).length;
+	    countChildrenWithState(state) {
+	        return this.children.filter(child => child.getConnectivityState() === state)
+	            .length;
 	    }
 	    calculateAndUpdateState() {
-	        if (this.countSubchannelsWithState(connectivity_state_1.ConnectivityState.READY) > 0) {
-	            const readySubchannels = this.subchannels.filter(subchannel => subchannel.getConnectivityState() === connectivity_state_1.ConnectivityState.READY);
+	        if (this.updatesPaused) {
+	            return;
+	        }
+	        if (this.countChildrenWithState(connectivity_state_1.ConnectivityState.READY) > 0) {
+	            const readyChildren = this.children.filter(child => child.getConnectivityState() === connectivity_state_1.ConnectivityState.READY);
 	            let index = 0;
 	            if (this.currentReadyPicker !== null) {
-	                index = readySubchannels.indexOf(this.currentReadyPicker.peekNextSubchannel());
+	                const nextPickedEndpoint = this.currentReadyPicker.peekNextEndpoint();
+	                index = readyChildren.findIndex(child => (0, subchannel_address_1.endpointEqual)(child.getEndpoint(), nextPickedEndpoint));
 	                if (index < 0) {
 	                    index = 0;
 	                }
 	            }
-	            this.updateState(connectivity_state_1.ConnectivityState.READY, new RoundRobinPicker(readySubchannels, index));
+	            this.updateState(connectivity_state_1.ConnectivityState.READY, new RoundRobinPicker(readyChildren.map(child => ({
+	                endpoint: child.getEndpoint(),
+	                picker: child.getPicker(),
+	            })), index));
 	        }
-	        else if (this.countSubchannelsWithState(connectivity_state_1.ConnectivityState.CONNECTING) > 0) {
+	        else if (this.countChildrenWithState(connectivity_state_1.ConnectivityState.CONNECTING) > 0) {
 	            this.updateState(connectivity_state_1.ConnectivityState.CONNECTING, new picker_1.QueuePicker(this));
 	        }
-	        else if (this.countSubchannelsWithState(connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE) > 0) {
+	        else if (this.countChildrenWithState(connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE) > 0) {
 	            this.updateState(connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE, new picker_1.UnavailablePicker({ details: `No connection established. Last error: ${this.lastError}` }));
 	        }
 	        else {
@@ -30762,38 +31160,28 @@ function requireLoadBalancerRoundRobin () {
 	        this.channelControlHelper.updateState(newState, picker);
 	    }
 	    resetSubchannelList() {
-	        for (const subchannel of this.subchannels) {
-	            subchannel.removeConnectivityStateListener(this.subchannelStateListener);
-	            subchannel.unref();
-	            this.channelControlHelper.removeChannelzChild(subchannel.getChannelzRef());
+	        for (const child of this.children) {
+	            child.destroy();
 	        }
-	        this.subchannels = [];
 	    }
-	    updateAddressList(addressList, lbConfig) {
+	    updateAddressList(endpointList, lbConfig) {
 	        this.resetSubchannelList();
-	        trace('Connect to address list ' +
-	            addressList.map(address => (0, subchannel_address_1.subchannelAddressToString)(address)));
-	        this.subchannels = addressList.map(address => this.channelControlHelper.createSubchannel(address, {}));
-	        for (const subchannel of this.subchannels) {
-	            subchannel.ref();
-	            subchannel.addConnectivityStateListener(this.subchannelStateListener);
-	            this.channelControlHelper.addChannelzChild(subchannel.getChannelzRef());
-	            const subchannelState = subchannel.getConnectivityState();
-	            if (subchannelState === connectivity_state_1.ConnectivityState.IDLE ||
-	                subchannelState === connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE) {
-	                subchannel.startConnecting();
-	            }
+	        trace('Connect to endpoint list ' + endpointList.map(subchannel_address_1.endpointToString));
+	        this.updatesPaused = true;
+	        this.children = endpointList.map(endpoint => new load_balancer_pick_first_1.LeafLoadBalancer(endpoint, this.childChannelControlHelper, this.options));
+	        for (const child of this.children) {
+	            child.startConnecting();
 	        }
+	        this.updatesPaused = false;
 	        this.calculateAndUpdateState();
 	    }
 	    exitIdle() {
-	        for (const subchannel of this.subchannels) {
-	            subchannel.startConnecting();
-	        }
+	        /* The round_robin LB policy is only in the IDLE state if it has no
+	         * addresses to try to connect to and it has no picked subchannel.
+	         * In that case, there is no meaningful action that can be taken here. */
 	    }
 	    resetBackoff() {
-	        /* The pick first load balancer does not have a connection backoff, so this
-	         * does nothing */
+	        // This LB policy has no backoff to reset
 	    }
 	    destroy() {
 	        this.resetSubchannelList();
@@ -30809,6 +31197,582 @@ function requireLoadBalancerRoundRobin () {
 	loadBalancerRoundRobin.setup = setup;
 	
 	return loadBalancerRoundRobin;
+}
+
+var loadBalancerOutlierDetection = {};
+
+var hasRequiredLoadBalancerOutlierDetection;
+
+function requireLoadBalancerOutlierDetection () {
+	if (hasRequiredLoadBalancerOutlierDetection) return loadBalancerOutlierDetection;
+	hasRequiredLoadBalancerOutlierDetection = 1;
+	/*
+	 * Copyright 2022 gRPC authors.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 *     http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 */
+	var _a;
+	Object.defineProperty(loadBalancerOutlierDetection, "__esModule", { value: true });
+	loadBalancerOutlierDetection.setup = loadBalancerOutlierDetection.OutlierDetectionLoadBalancer = loadBalancerOutlierDetection.OutlierDetectionLoadBalancingConfig = void 0;
+	const connectivity_state_1 = connectivityState;
+	const constants_1 = constants;
+	const duration_1 = requireDuration();
+	const experimental_1 = requireExperimental();
+	const load_balancer_1 = requireLoadBalancer();
+	const load_balancer_child_handler_1 = requireLoadBalancerChildHandler();
+	const picker_1 = requirePicker();
+	const subchannel_address_1 = subchannelAddress;
+	const subchannel_interface_1 = requireSubchannelInterface();
+	const logging = logging$8;
+	const TRACER_NAME = 'outlier_detection';
+	function trace(text) {
+	    logging.trace(constants_1.LogVerbosity.DEBUG, TRACER_NAME, text);
+	}
+	const TYPE_NAME = 'outlier_detection';
+	const OUTLIER_DETECTION_ENABLED = ((_a = process.env.GRPC_EXPERIMENTAL_ENABLE_OUTLIER_DETECTION) !== null && _a !== void 0 ? _a : 'true') === 'true';
+	const defaultSuccessRateEjectionConfig = {
+	    stdev_factor: 1900,
+	    enforcement_percentage: 100,
+	    minimum_hosts: 5,
+	    request_volume: 100,
+	};
+	const defaultFailurePercentageEjectionConfig = {
+	    threshold: 85,
+	    enforcement_percentage: 100,
+	    minimum_hosts: 5,
+	    request_volume: 50,
+	};
+	function validateFieldType(obj, fieldName, expectedType, objectName) {
+	    if (fieldName in obj &&
+	        obj[fieldName] !== undefined &&
+	        typeof obj[fieldName] !== expectedType) {
+	        const fullFieldName = objectName ? `${objectName}.${fieldName}` : fieldName;
+	        throw new Error(`outlier detection config ${fullFieldName} parse error: expected ${expectedType}, got ${typeof obj[fieldName]}`);
+	    }
+	}
+	function validatePositiveDuration(obj, fieldName, objectName) {
+	    const fullFieldName = objectName ? `${objectName}.${fieldName}` : fieldName;
+	    if (fieldName in obj && obj[fieldName] !== undefined) {
+	        if (!(0, duration_1.isDuration)(obj[fieldName])) {
+	            throw new Error(`outlier detection config ${fullFieldName} parse error: expected Duration, got ${typeof obj[fieldName]}`);
+	        }
+	        if (!(obj[fieldName].seconds >= 0 &&
+	            obj[fieldName].seconds <= 315576000000 &&
+	            obj[fieldName].nanos >= 0 &&
+	            obj[fieldName].nanos <= 999999999)) {
+	            throw new Error(`outlier detection config ${fullFieldName} parse error: values out of range for non-negative Duaration`);
+	        }
+	    }
+	}
+	function validatePercentage(obj, fieldName, objectName) {
+	    const fullFieldName = objectName ? `${objectName}.${fieldName}` : fieldName;
+	    validateFieldType(obj, fieldName, 'number', objectName);
+	    if (fieldName in obj &&
+	        obj[fieldName] !== undefined &&
+	        !(obj[fieldName] >= 0 && obj[fieldName] <= 100)) {
+	        throw new Error(`outlier detection config ${fullFieldName} parse error: value out of range for percentage (0-100)`);
+	    }
+	}
+	class OutlierDetectionLoadBalancingConfig {
+	    constructor(intervalMs, baseEjectionTimeMs, maxEjectionTimeMs, maxEjectionPercent, successRateEjection, failurePercentageEjection, childPolicy) {
+	        this.childPolicy = childPolicy;
+	        if (childPolicy.getLoadBalancerName() === 'pick_first') {
+	            throw new Error('outlier_detection LB policy cannot have a pick_first child policy');
+	        }
+	        this.intervalMs = intervalMs !== null && intervalMs !== void 0 ? intervalMs : 10000;
+	        this.baseEjectionTimeMs = baseEjectionTimeMs !== null && baseEjectionTimeMs !== void 0 ? baseEjectionTimeMs : 30000;
+	        this.maxEjectionTimeMs = maxEjectionTimeMs !== null && maxEjectionTimeMs !== void 0 ? maxEjectionTimeMs : 300000;
+	        this.maxEjectionPercent = maxEjectionPercent !== null && maxEjectionPercent !== void 0 ? maxEjectionPercent : 10;
+	        this.successRateEjection = successRateEjection
+	            ? Object.assign(Object.assign({}, defaultSuccessRateEjectionConfig), successRateEjection) : null;
+	        this.failurePercentageEjection = failurePercentageEjection
+	            ? Object.assign(Object.assign({}, defaultFailurePercentageEjectionConfig), failurePercentageEjection) : null;
+	    }
+	    getLoadBalancerName() {
+	        return TYPE_NAME;
+	    }
+	    toJsonObject() {
+	        var _a, _b;
+	        return {
+	            outlier_detection: {
+	                interval: (0, duration_1.msToDuration)(this.intervalMs),
+	                base_ejection_time: (0, duration_1.msToDuration)(this.baseEjectionTimeMs),
+	                max_ejection_time: (0, duration_1.msToDuration)(this.maxEjectionTimeMs),
+	                max_ejection_percent: this.maxEjectionPercent,
+	                success_rate_ejection: (_a = this.successRateEjection) !== null && _a !== void 0 ? _a : undefined,
+	                failure_percentage_ejection: (_b = this.failurePercentageEjection) !== null && _b !== void 0 ? _b : undefined,
+	                child_policy: [this.childPolicy.toJsonObject()],
+	            },
+	        };
+	    }
+	    getIntervalMs() {
+	        return this.intervalMs;
+	    }
+	    getBaseEjectionTimeMs() {
+	        return this.baseEjectionTimeMs;
+	    }
+	    getMaxEjectionTimeMs() {
+	        return this.maxEjectionTimeMs;
+	    }
+	    getMaxEjectionPercent() {
+	        return this.maxEjectionPercent;
+	    }
+	    getSuccessRateEjectionConfig() {
+	        return this.successRateEjection;
+	    }
+	    getFailurePercentageEjectionConfig() {
+	        return this.failurePercentageEjection;
+	    }
+	    getChildPolicy() {
+	        return this.childPolicy;
+	    }
+	    static createFromJson(obj) {
+	        var _a;
+	        validatePositiveDuration(obj, 'interval');
+	        validatePositiveDuration(obj, 'base_ejection_time');
+	        validatePositiveDuration(obj, 'max_ejection_time');
+	        validatePercentage(obj, 'max_ejection_percent');
+	        if ('success_rate_ejection' in obj &&
+	            obj.success_rate_ejection !== undefined) {
+	            if (typeof obj.success_rate_ejection !== 'object') {
+	                throw new Error('outlier detection config success_rate_ejection must be an object');
+	            }
+	            validateFieldType(obj.success_rate_ejection, 'stdev_factor', 'number', 'success_rate_ejection');
+	            validatePercentage(obj.success_rate_ejection, 'enforcement_percentage', 'success_rate_ejection');
+	            validateFieldType(obj.success_rate_ejection, 'minimum_hosts', 'number', 'success_rate_ejection');
+	            validateFieldType(obj.success_rate_ejection, 'request_volume', 'number', 'success_rate_ejection');
+	        }
+	        if ('failure_percentage_ejection' in obj &&
+	            obj.failure_percentage_ejection !== undefined) {
+	            if (typeof obj.failure_percentage_ejection !== 'object') {
+	                throw new Error('outlier detection config failure_percentage_ejection must be an object');
+	            }
+	            validatePercentage(obj.failure_percentage_ejection, 'threshold', 'failure_percentage_ejection');
+	            validatePercentage(obj.failure_percentage_ejection, 'enforcement_percentage', 'failure_percentage_ejection');
+	            validateFieldType(obj.failure_percentage_ejection, 'minimum_hosts', 'number', 'failure_percentage_ejection');
+	            validateFieldType(obj.failure_percentage_ejection, 'request_volume', 'number', 'failure_percentage_ejection');
+	        }
+	        if (!('child_policy' in obj) || !Array.isArray(obj.child_policy)) {
+	            throw new Error('outlier detection config child_policy must be an array');
+	        }
+	        const childPolicy = (0, load_balancer_1.selectLbConfigFromList)(obj.child_policy);
+	        if (!childPolicy) {
+	            throw new Error('outlier detection config child_policy: no valid recognized policy found');
+	        }
+	        return new OutlierDetectionLoadBalancingConfig(obj.interval ? (0, duration_1.durationToMs)(obj.interval) : null, obj.base_ejection_time ? (0, duration_1.durationToMs)(obj.base_ejection_time) : null, obj.max_ejection_time ? (0, duration_1.durationToMs)(obj.max_ejection_time) : null, (_a = obj.max_ejection_percent) !== null && _a !== void 0 ? _a : null, obj.success_rate_ejection, obj.failure_percentage_ejection, childPolicy);
+	    }
+	}
+	loadBalancerOutlierDetection.OutlierDetectionLoadBalancingConfig = OutlierDetectionLoadBalancingConfig;
+	class OutlierDetectionSubchannelWrapper extends subchannel_interface_1.BaseSubchannelWrapper {
+	    constructor(childSubchannel, mapEntry) {
+	        super(childSubchannel);
+	        this.mapEntry = mapEntry;
+	        this.refCount = 0;
+	    }
+	    ref() {
+	        this.child.ref();
+	        this.refCount += 1;
+	    }
+	    unref() {
+	        this.child.unref();
+	        this.refCount -= 1;
+	        if (this.refCount <= 0) {
+	            if (this.mapEntry) {
+	                const index = this.mapEntry.subchannelWrappers.indexOf(this);
+	                if (index >= 0) {
+	                    this.mapEntry.subchannelWrappers.splice(index, 1);
+	                }
+	            }
+	        }
+	    }
+	    eject() {
+	        this.setHealthy(false);
+	    }
+	    uneject() {
+	        this.setHealthy(true);
+	    }
+	    getMapEntry() {
+	        return this.mapEntry;
+	    }
+	    getWrappedSubchannel() {
+	        return this.child;
+	    }
+	}
+	function createEmptyBucket() {
+	    return {
+	        success: 0,
+	        failure: 0,
+	    };
+	}
+	class CallCounter {
+	    constructor() {
+	        this.activeBucket = createEmptyBucket();
+	        this.inactiveBucket = createEmptyBucket();
+	    }
+	    addSuccess() {
+	        this.activeBucket.success += 1;
+	    }
+	    addFailure() {
+	        this.activeBucket.failure += 1;
+	    }
+	    switchBuckets() {
+	        this.inactiveBucket = this.activeBucket;
+	        this.activeBucket = createEmptyBucket();
+	    }
+	    getLastSuccesses() {
+	        return this.inactiveBucket.success;
+	    }
+	    getLastFailures() {
+	        return this.inactiveBucket.failure;
+	    }
+	}
+	class OutlierDetectionPicker {
+	    constructor(wrappedPicker, countCalls) {
+	        this.wrappedPicker = wrappedPicker;
+	        this.countCalls = countCalls;
+	    }
+	    pick(pickArgs) {
+	        const wrappedPick = this.wrappedPicker.pick(pickArgs);
+	        if (wrappedPick.pickResultType === picker_1.PickResultType.COMPLETE) {
+	            const subchannelWrapper = wrappedPick.subchannel;
+	            const mapEntry = subchannelWrapper.getMapEntry();
+	            if (mapEntry) {
+	                let onCallEnded = wrappedPick.onCallEnded;
+	                if (this.countCalls) {
+	                    onCallEnded = statusCode => {
+	                        var _a;
+	                        if (statusCode === constants_1.Status.OK) {
+	                            mapEntry.counter.addSuccess();
+	                        }
+	                        else {
+	                            mapEntry.counter.addFailure();
+	                        }
+	                        (_a = wrappedPick.onCallEnded) === null || _a === void 0 ? void 0 : _a.call(wrappedPick, statusCode);
+	                    };
+	                }
+	                return Object.assign(Object.assign({}, wrappedPick), { subchannel: subchannelWrapper.getWrappedSubchannel(), onCallEnded: onCallEnded });
+	            }
+	            else {
+	                return Object.assign(Object.assign({}, wrappedPick), { subchannel: subchannelWrapper.getWrappedSubchannel() });
+	            }
+	        }
+	        else {
+	            return wrappedPick;
+	        }
+	    }
+	}
+	class OutlierDetectionLoadBalancer {
+	    constructor(channelControlHelper, options) {
+	        this.entryMap = new subchannel_address_1.EndpointMap();
+	        this.latestConfig = null;
+	        this.timerStartTime = null;
+	        this.childBalancer = new load_balancer_child_handler_1.ChildLoadBalancerHandler((0, experimental_1.createChildChannelControlHelper)(channelControlHelper, {
+	            createSubchannel: (subchannelAddress, subchannelArgs) => {
+	                const originalSubchannel = channelControlHelper.createSubchannel(subchannelAddress, subchannelArgs);
+	                const mapEntry = this.entryMap.getForSubchannelAddress(subchannelAddress);
+	                const subchannelWrapper = new OutlierDetectionSubchannelWrapper(originalSubchannel, mapEntry);
+	                if ((mapEntry === null || mapEntry === void 0 ? void 0 : mapEntry.currentEjectionTimestamp) !== null) {
+	                    // If the address is ejected, propagate that to the new subchannel wrapper
+	                    subchannelWrapper.eject();
+	                }
+	                mapEntry === null || mapEntry === void 0 ? void 0 : mapEntry.subchannelWrappers.push(subchannelWrapper);
+	                return subchannelWrapper;
+	            },
+	            updateState: (connectivityState, picker) => {
+	                if (connectivityState === connectivity_state_1.ConnectivityState.READY) {
+	                    channelControlHelper.updateState(connectivityState, new OutlierDetectionPicker(picker, this.isCountingEnabled()));
+	                }
+	                else {
+	                    channelControlHelper.updateState(connectivityState, picker);
+	                }
+	            },
+	        }), options);
+	        this.ejectionTimer = setInterval(() => { }, 0);
+	        clearInterval(this.ejectionTimer);
+	    }
+	    isCountingEnabled() {
+	        return (this.latestConfig !== null &&
+	            (this.latestConfig.getSuccessRateEjectionConfig() !== null ||
+	                this.latestConfig.getFailurePercentageEjectionConfig() !== null));
+	    }
+	    getCurrentEjectionPercent() {
+	        let ejectionCount = 0;
+	        for (const mapEntry of this.entryMap.values()) {
+	            if (mapEntry.currentEjectionTimestamp !== null) {
+	                ejectionCount += 1;
+	            }
+	        }
+	        return (ejectionCount * 100) / this.entryMap.size;
+	    }
+	    runSuccessRateCheck(ejectionTimestamp) {
+	        if (!this.latestConfig) {
+	            return;
+	        }
+	        const successRateConfig = this.latestConfig.getSuccessRateEjectionConfig();
+	        if (!successRateConfig) {
+	            return;
+	        }
+	        trace('Running success rate check');
+	        // Step 1
+	        const targetRequestVolume = successRateConfig.request_volume;
+	        let addresesWithTargetVolume = 0;
+	        const successRates = [];
+	        for (const [endpoint, mapEntry] of this.entryMap.entries()) {
+	            const successes = mapEntry.counter.getLastSuccesses();
+	            const failures = mapEntry.counter.getLastFailures();
+	            trace('Stats for ' +
+	                (0, subchannel_address_1.endpointToString)(endpoint) +
+	                ': successes=' +
+	                successes +
+	                ' failures=' +
+	                failures +
+	                ' targetRequestVolume=' +
+	                targetRequestVolume);
+	            if (successes + failures >= targetRequestVolume) {
+	                addresesWithTargetVolume += 1;
+	                successRates.push(successes / (successes + failures));
+	            }
+	        }
+	        trace('Found ' +
+	            addresesWithTargetVolume +
+	            ' success rate candidates; currentEjectionPercent=' +
+	            this.getCurrentEjectionPercent() +
+	            ' successRates=[' +
+	            successRates +
+	            ']');
+	        if (addresesWithTargetVolume < successRateConfig.minimum_hosts) {
+	            return;
+	        }
+	        // Step 2
+	        const successRateMean = successRates.reduce((a, b) => a + b) / successRates.length;
+	        let successRateDeviationSum = 0;
+	        for (const rate of successRates) {
+	            const deviation = rate - successRateMean;
+	            successRateDeviationSum += deviation * deviation;
+	        }
+	        const successRateVariance = successRateDeviationSum / successRates.length;
+	        const successRateStdev = Math.sqrt(successRateVariance);
+	        const ejectionThreshold = successRateMean -
+	            successRateStdev * (successRateConfig.stdev_factor / 1000);
+	        trace('stdev=' + successRateStdev + ' ejectionThreshold=' + ejectionThreshold);
+	        // Step 3
+	        for (const [address, mapEntry] of this.entryMap.entries()) {
+	            // Step 3.i
+	            if (this.getCurrentEjectionPercent() >=
+	                this.latestConfig.getMaxEjectionPercent()) {
+	                break;
+	            }
+	            // Step 3.ii
+	            const successes = mapEntry.counter.getLastSuccesses();
+	            const failures = mapEntry.counter.getLastFailures();
+	            if (successes + failures < targetRequestVolume) {
+	                continue;
+	            }
+	            // Step 3.iii
+	            const successRate = successes / (successes + failures);
+	            trace('Checking candidate ' + address + ' successRate=' + successRate);
+	            if (successRate < ejectionThreshold) {
+	                const randomNumber = Math.random() * 100;
+	                trace('Candidate ' +
+	                    address +
+	                    ' randomNumber=' +
+	                    randomNumber +
+	                    ' enforcement_percentage=' +
+	                    successRateConfig.enforcement_percentage);
+	                if (randomNumber < successRateConfig.enforcement_percentage) {
+	                    trace('Ejecting candidate ' + address);
+	                    this.eject(mapEntry, ejectionTimestamp);
+	                }
+	            }
+	        }
+	    }
+	    runFailurePercentageCheck(ejectionTimestamp) {
+	        if (!this.latestConfig) {
+	            return;
+	        }
+	        const failurePercentageConfig = this.latestConfig.getFailurePercentageEjectionConfig();
+	        if (!failurePercentageConfig) {
+	            return;
+	        }
+	        trace('Running failure percentage check. threshold=' +
+	            failurePercentageConfig.threshold +
+	            ' request volume threshold=' +
+	            failurePercentageConfig.request_volume);
+	        // Step 1
+	        let addressesWithTargetVolume = 0;
+	        for (const mapEntry of this.entryMap.values()) {
+	            const successes = mapEntry.counter.getLastSuccesses();
+	            const failures = mapEntry.counter.getLastFailures();
+	            if (successes + failures >= failurePercentageConfig.request_volume) {
+	                addressesWithTargetVolume += 1;
+	            }
+	        }
+	        if (addressesWithTargetVolume < failurePercentageConfig.minimum_hosts) {
+	            return;
+	        }
+	        // Step 2
+	        for (const [address, mapEntry] of this.entryMap.entries()) {
+	            // Step 2.i
+	            if (this.getCurrentEjectionPercent() >=
+	                this.latestConfig.getMaxEjectionPercent()) {
+	                break;
+	            }
+	            // Step 2.ii
+	            const successes = mapEntry.counter.getLastSuccesses();
+	            const failures = mapEntry.counter.getLastFailures();
+	            trace('Candidate successes=' + successes + ' failures=' + failures);
+	            if (successes + failures < failurePercentageConfig.request_volume) {
+	                continue;
+	            }
+	            // Step 2.iii
+	            const failurePercentage = (failures * 100) / (failures + successes);
+	            if (failurePercentage > failurePercentageConfig.threshold) {
+	                const randomNumber = Math.random() * 100;
+	                trace('Candidate ' +
+	                    address +
+	                    ' randomNumber=' +
+	                    randomNumber +
+	                    ' enforcement_percentage=' +
+	                    failurePercentageConfig.enforcement_percentage);
+	                if (randomNumber < failurePercentageConfig.enforcement_percentage) {
+	                    trace('Ejecting candidate ' + address);
+	                    this.eject(mapEntry, ejectionTimestamp);
+	                }
+	            }
+	        }
+	    }
+	    eject(mapEntry, ejectionTimestamp) {
+	        mapEntry.currentEjectionTimestamp = new Date();
+	        mapEntry.ejectionTimeMultiplier += 1;
+	        for (const subchannelWrapper of mapEntry.subchannelWrappers) {
+	            subchannelWrapper.eject();
+	        }
+	    }
+	    uneject(mapEntry) {
+	        mapEntry.currentEjectionTimestamp = null;
+	        for (const subchannelWrapper of mapEntry.subchannelWrappers) {
+	            subchannelWrapper.uneject();
+	        }
+	    }
+	    switchAllBuckets() {
+	        for (const mapEntry of this.entryMap.values()) {
+	            mapEntry.counter.switchBuckets();
+	        }
+	    }
+	    startTimer(delayMs) {
+	        var _a, _b;
+	        this.ejectionTimer = setTimeout(() => this.runChecks(), delayMs);
+	        (_b = (_a = this.ejectionTimer).unref) === null || _b === void 0 ? void 0 : _b.call(_a);
+	    }
+	    runChecks() {
+	        const ejectionTimestamp = new Date();
+	        trace('Ejection timer running');
+	        this.switchAllBuckets();
+	        if (!this.latestConfig) {
+	            return;
+	        }
+	        this.timerStartTime = ejectionTimestamp;
+	        this.startTimer(this.latestConfig.getIntervalMs());
+	        this.runSuccessRateCheck(ejectionTimestamp);
+	        this.runFailurePercentageCheck(ejectionTimestamp);
+	        for (const [address, mapEntry] of this.entryMap.entries()) {
+	            if (mapEntry.currentEjectionTimestamp === null) {
+	                if (mapEntry.ejectionTimeMultiplier > 0) {
+	                    mapEntry.ejectionTimeMultiplier -= 1;
+	                }
+	            }
+	            else {
+	                const baseEjectionTimeMs = this.latestConfig.getBaseEjectionTimeMs();
+	                const maxEjectionTimeMs = this.latestConfig.getMaxEjectionTimeMs();
+	                const returnTime = new Date(mapEntry.currentEjectionTimestamp.getTime());
+	                returnTime.setMilliseconds(returnTime.getMilliseconds() +
+	                    Math.min(baseEjectionTimeMs * mapEntry.ejectionTimeMultiplier, Math.max(baseEjectionTimeMs, maxEjectionTimeMs)));
+	                if (returnTime < new Date()) {
+	                    trace('Unejecting ' + address);
+	                    this.uneject(mapEntry);
+	                }
+	            }
+	        }
+	    }
+	    updateAddressList(endpointList, lbConfig, attributes) {
+	        if (!(lbConfig instanceof OutlierDetectionLoadBalancingConfig)) {
+	            return;
+	        }
+	        for (const endpoint of endpointList) {
+	            if (!this.entryMap.has(endpoint)) {
+	                trace('Adding map entry for ' + (0, subchannel_address_1.endpointToString)(endpoint));
+	                this.entryMap.set(endpoint, {
+	                    counter: new CallCounter(),
+	                    currentEjectionTimestamp: null,
+	                    ejectionTimeMultiplier: 0,
+	                    subchannelWrappers: [],
+	                });
+	            }
+	        }
+	        this.entryMap.deleteMissing(endpointList);
+	        const childPolicy = lbConfig.getChildPolicy();
+	        this.childBalancer.updateAddressList(endpointList, childPolicy, attributes);
+	        if (lbConfig.getSuccessRateEjectionConfig() ||
+	            lbConfig.getFailurePercentageEjectionConfig()) {
+	            if (this.timerStartTime) {
+	                trace('Previous timer existed. Replacing timer');
+	                clearTimeout(this.ejectionTimer);
+	                const remainingDelay = lbConfig.getIntervalMs() -
+	                    (new Date().getTime() - this.timerStartTime.getTime());
+	                this.startTimer(remainingDelay);
+	            }
+	            else {
+	                trace('Starting new timer');
+	                this.timerStartTime = new Date();
+	                this.startTimer(lbConfig.getIntervalMs());
+	                this.switchAllBuckets();
+	            }
+	        }
+	        else {
+	            trace('Counting disabled. Cancelling timer.');
+	            this.timerStartTime = null;
+	            clearTimeout(this.ejectionTimer);
+	            for (const mapEntry of this.entryMap.values()) {
+	                this.uneject(mapEntry);
+	                mapEntry.ejectionTimeMultiplier = 0;
+	            }
+	        }
+	        this.latestConfig = lbConfig;
+	    }
+	    exitIdle() {
+	        this.childBalancer.exitIdle();
+	    }
+	    resetBackoff() {
+	        this.childBalancer.resetBackoff();
+	    }
+	    destroy() {
+	        clearTimeout(this.ejectionTimer);
+	        this.childBalancer.destroy();
+	    }
+	    getTypeName() {
+	        return TYPE_NAME;
+	    }
+	}
+	loadBalancerOutlierDetection.OutlierDetectionLoadBalancer = OutlierDetectionLoadBalancer;
+	function setup() {
+	    if (OUTLIER_DETECTION_ENABLED) {
+	        (0, experimental_1.registerLoadBalancerType)(TYPE_NAME, OutlierDetectionLoadBalancer, OutlierDetectionLoadBalancingConfig);
+	    }
+	}
+	loadBalancerOutlierDetection.setup = setup;
+	
+	return loadBalancerOutlierDetection;
 }
 
 (function (exports) {
@@ -30829,7 +31793,7 @@ function requireLoadBalancerRoundRobin () {
 	 *
 	 */
 	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.experimental = exports.addAdminServicesToServer = exports.getChannelzHandlers = exports.getChannelzServiceDefinition = exports.InterceptorConfigurationError = exports.InterceptingCall = exports.RequesterBuilder = exports.ListenerBuilder = exports.StatusBuilder = exports.getClientChannel = exports.ServerCredentials = exports.Server = exports.setLogVerbosity = exports.setLogger = exports.load = exports.loadObject = exports.CallCredentials = exports.ChannelCredentials = exports.waitForClientReady = exports.closeClient = exports.Channel = exports.makeGenericClientConstructor = exports.makeClientConstructor = exports.loadPackageDefinition = exports.Client = exports.compressionAlgorithms = exports.propagate = exports.connectivityState = exports.status = exports.logVerbosity = exports.Metadata = exports.credentials = void 0;
+	exports.experimental = exports.ServerInterceptingCall = exports.ResponderBuilder = exports.ServerListenerBuilder = exports.addAdminServicesToServer = exports.getChannelzHandlers = exports.getChannelzServiceDefinition = exports.InterceptorConfigurationError = exports.InterceptingCall = exports.RequesterBuilder = exports.ListenerBuilder = exports.StatusBuilder = exports.getClientChannel = exports.ServerCredentials = exports.Server = exports.setLogVerbosity = exports.setLogger = exports.load = exports.loadObject = exports.CallCredentials = exports.ChannelCredentials = exports.waitForClientReady = exports.closeClient = exports.Channel = exports.makeGenericClientConstructor = exports.makeClientConstructor = exports.loadPackageDefinition = exports.Client = exports.compressionAlgorithms = exports.propagate = exports.connectivityState = exports.status = exports.logVerbosity = exports.Metadata = exports.credentials = void 0;
 	const call_credentials_1 = callCredentials;
 	Object.defineProperty(exports, "CallCredentials", { enumerable: true, get: function () { return call_credentials_1.CallCredentials; } });
 	const channel_1 = requireChannel();
@@ -30846,7 +31810,7 @@ function requireLoadBalancerRoundRobin () {
 	Object.defineProperty(exports, "logVerbosity", { enumerable: true, get: function () { return constants_1.LogVerbosity; } });
 	Object.defineProperty(exports, "status", { enumerable: true, get: function () { return constants_1.Status; } });
 	Object.defineProperty(exports, "propagate", { enumerable: true, get: function () { return constants_1.Propagate; } });
-	const logging = logging$9;
+	const logging = logging$8;
 	const make_client_1 = requireMakeClient();
 	Object.defineProperty(exports, "loadPackageDefinition", { enumerable: true, get: function () { return make_client_1.loadPackageDefinition; } });
 	Object.defineProperty(exports, "makeClientConstructor", { enumerable: true, get: function () { return make_client_1.makeClientConstructor; } });
@@ -30932,6 +31896,10 @@ function requireLoadBalancerRoundRobin () {
 	Object.defineProperty(exports, "getChannelzHandlers", { enumerable: true, get: function () { return channelz_1.getChannelzHandlers; } });
 	var admin_1 = requireAdmin();
 	Object.defineProperty(exports, "addAdminServicesToServer", { enumerable: true, get: function () { return admin_1.addAdminServicesToServer; } });
+	var server_interceptors_1 = requireServerInterceptors();
+	Object.defineProperty(exports, "ServerListenerBuilder", { enumerable: true, get: function () { return server_interceptors_1.ServerListenerBuilder; } });
+	Object.defineProperty(exports, "ResponderBuilder", { enumerable: true, get: function () { return server_interceptors_1.ResponderBuilder; } });
+	Object.defineProperty(exports, "ServerInterceptingCall", { enumerable: true, get: function () { return server_interceptors_1.ServerInterceptingCall; } });
 	const experimental = requireExperimental();
 	exports.experimental = experimental;
 	const resolver_dns = requireResolverDns();
@@ -30952,12 +31920,6 @@ function requireLoadBalancerRoundRobin () {
 	})();
 	
 } (src$2));
-
-// Original file: src/proto/NumberSaleService.proto
-const EntityTypeEnumPb = {
-    NSale: 0,
-    NSaleDtl: 1,
-};
 
 const entityKind = Symbol.for("drizzle:entityKind");
 function is(value, type) {
@@ -32106,10 +33068,6 @@ class QueryPromise {
   then(onFulfilled, onRejected) {
     return this.execute().then(onFulfilled, onRejected);
   }
-}
-
-function max(expression) {
-  return sql`max(${expression})`.mapWith(is(expression, Column) ? expression : String);
 }
 
 function mapResultRow(columns, row, joinsNotNullableMap) {
@@ -35902,9 +36860,9 @@ async function findGroupIdListByApikey(apiKey, status = 1) {
 const nSale = sqliteTable('nSale', {
     id: integer('id').notNull(), // 'id' is the column name
     groupId: integer('groupId').notNull(),
+    userId: integer('userId').notNull(),
     betType: integer('betType').notNull(),
     betPeriod: integer('betPeriod').notNull(),
-    userId: integer('userId').notNull(),
     machineName: text('machineName').notNull().default(''),
     customerName: text('customerName').notNull(),
     voucherName: text('voucherName').notNull(),
@@ -35920,54 +36878,50 @@ const nSale = sqliteTable('nSale', {
     is_synced: integer('is_synced', { mode: 'boolean' }).notNull(),
     sync_seq: integer('sync_seq').notNull()
 }, (t) => ({
-    SeqKeyUnique: unique("NSaleSeqKeyUnique").on(t.id, t.groupId, t.userId, t.betType, t.betPeriod)
+    SeqKeyUnique: unique("NSaleSeqKeyUnique").on(t.id, t.groupId, t.userId)
 })); //.primaryKey(['entityId','groupId', 'userId']);
-function toNSaleEntity(msg) {
-    return {
-        id: msg.Id,
-        groupId: msg.GroupId,
-        userId: msg.UserId,
-        betType: msg.BetType,
-        betPeriod: msg.BetPeriod,
-        machineName: msg.MachineName,
-        customerName: msg.CustomerName,
-        voucherName: msg.VoucherName,
-        isVoucherOpen: msg.IsVoucherOpen,
-        betDate: msg.BetDate,
-        betRate: msg.BetRate,
-        betCommission: msg.BetCommission,
-        betTotal: msg.BetTotal,
-        winTotalBetAmt: msg.WinTotalBetAmt,
-        winPartialBetAmt: msg.WinPartialBetAmt,
-        active: msg.active,
-        deleted: msg.deleted,
-        is_synced: msg.is_synced,
-        sync_seq: msg.sync_seq,
-    };
-}
-function toNSaleMsg(entity) {
-    const msg = {};
-    msg.Id = entity.id;
-    msg.GroupId = entity.groupId;
-    msg.UserId = entity.userId;
-    msg.BetType = entity.betType;
-    msg.BetPeriod = entity.betPeriod;
-    msg.MachineName = entity.machineName;
-    msg.CustomerName = entity.customerName;
-    msg.VoucherName = entity.voucherName;
-    msg.IsVoucherOpen = entity.isVoucherOpen;
-    msg.BetDate = entity.betDate;
-    msg.BetRate = entity.betRate;
-    msg.BetCommission = entity.betCommission;
-    msg.BetTotal = entity.betTotal;
-    msg.WinTotalBetAmt = entity.winTotalBetAmt;
-    msg.WinPartialBetAmt = entity.winPartialBetAmt;
-    msg.active = entity.active;
-    msg.deleted = entity.deleted;
-    msg.is_synced = entity.is_synced;
-    msg.sync_seq = entity.sync_seq;
-    return msg;
-}
+const toNSaleEntity = (msg) => ({
+    id: msg.Id,
+    groupId: msg.GroupId,
+    userId: msg.UserId,
+    betType: msg.BetType,
+    betPeriod: msg.BetPeriod,
+    machineName: msg.MachineName,
+    customerName: msg.CustomerName,
+    voucherName: msg.VoucherName,
+    isVoucherOpen: msg.IsVoucherOpen,
+    betDate: msg.BetDate,
+    betRate: msg.BetRate,
+    betCommission: msg.BetCommission,
+    betTotal: msg.BetTotal,
+    winTotalBetAmt: msg.WinTotalBetAmt,
+    winPartialBetAmt: msg.WinPartialBetAmt,
+    active: msg.active,
+    deleted: msg.deleted,
+    is_synced: msg.is_synced,
+    sync_seq: msg.sync_seq,
+});
+const toNSaleMsg = (entity) => ({
+    Id: entity.id,
+    GroupId: entity.groupId,
+    UserId: entity.userId,
+    BetType: entity.betType,
+    BetPeriod: entity.betPeriod,
+    MachineName: entity.machineName,
+    CustomerName: entity.customerName,
+    VoucherName: entity.voucherName,
+    IsVoucherOpen: entity.isVoucherOpen,
+    BetDate: entity.betDate,
+    BetRate: entity.betRate,
+    BetCommission: entity.betCommission,
+    BetTotal: entity.betTotal,
+    WinTotalBetAmt: entity.winTotalBetAmt,
+    WinPartialBetAmt: entity.winPartialBetAmt,
+    active: entity.active,
+    deleted: entity.deleted,
+    is_synced: entity.is_synced,
+    sync_seq: entity.sync_seq,
+});
 
 /** Init loading will only use betPeriod */
 async function findAll$1({ betType, betPeriod, groupId }) {
@@ -35987,9 +36941,6 @@ async function findAll$1({ betType, betPeriod, groupId }) {
     // Return the query result with the condition wrapped in the and() operator
     return dbDps2n3.select().from(nSale).where(and(condition)).all();
 }
-async function find$1({ betType, betPeriod, groupId, syncSeq }) {
-    return dbDps2n3.select().from(nSale).where(and(eq(nSale.betType, betType), eq(nSale.betPeriod, betPeriod), eq(nSale.groupId, groupId), eq(nSale.sync_seq, syncSeq))).get();
-}
 const getAllNSaleBetween$1 = async (betType, betPeriod, groupId, startSyncSeq, endSyncSeq) => {
     return dbDps2n3.select().from(nSale).where(and(eq(nSale.betType, betType), eq(nSale.betPeriod, betPeriod), eq(nSale.groupId, groupId), between(nSale.sync_seq, startSyncSeq, endSyncSeq))).all();
 };
@@ -36003,10 +36954,10 @@ const upsertNSale = async (nSaleData) => {
 const nSaleDtl = sqliteTable("nSaleDtl", {
     id: integer("id").notNull(),
     nSaleId: integer("nSaleId").notNull(),
-    betType: integer("betType").notNull(), //  TODO: redunt here for faster loading last syncseq  ,  
-    betPeriod: integer("betPeriod").notNull(), // possible to fill it during data loading ?
     groupId: integer("groupId").notNull(), // using uuid only save 3 fields value and more step to retrieve
     userId: integer("userId").notNull(), // redunt here for retrieving last syncseq
+    betType: integer("betType").notNull(), //  TODO: redunt here for faster loading last syncseq  ,  
+    betPeriod: integer("betPeriod").notNull(), // possible to fill it during data loading ?
     numberFormula: text("numberFormula").notNull(),
     amountFormula: text("amountFormula").notNull(),
     csvNumberList: text("csvNumberList"),
@@ -36018,7 +36969,7 @@ const nSaleDtl = sqliteTable("nSaleDtl", {
     is_synced: integer('is_synced', { mode: 'boolean' }).notNull(),
     sync_seq: integer('sync_seq').notNull()
 }, (t) => ({
-    SeqKeyUnique: unique("NSaleDtlSeqKeyUnique").on(t.id, t.nSaleId, t.groupId, t.userId, t.betType, t.betPeriod)
+    SeqKeyUnique: unique("NSaleDtlSeqKeyUnique").on(t.id, t.nSaleId, t.groupId, t.userId)
 }));
 function toNSaleDtlEntity(msg) {
     const entity = {};
@@ -36088,12 +37039,6 @@ async function findAll({ betType, betPeriod, groupId, entityId }) {
     // Return the query result with the condition wrapped in the and() operator
     return dbDps2n3.select().from(nSaleDtl).where(and(condition)).all();
 }
-async function find({ betType, betPeriod, groupId, userId, syncSeq }) {
-    return dbDps2n3
-        .select()
-        .from(nSaleDtl)
-        .where(and(eq(nSaleDtl.betType, betType), eq(nSaleDtl.betPeriod, betPeriod), eq(nSaleDtl.groupId, groupId), eq(nSaleDtl.userId, userId), eq(nSaleDtl.sync_seq, syncSeq))).get();
-}
 const upsertNSaleDtl = async (nSaleDtlData) => {
     return await dbDps2n3.insert(nSaleDtl).values(nSaleDtlData).onConflictDoUpdate({
         target: [nSaleDtl.id, nSaleDtl.nSaleId, nSaleDtl.groupId, nSaleDtl.userId, nSaleDtl.betType, nSaleDtl.betPeriod],
@@ -36102,6 +37047,42 @@ const upsertNSaleDtl = async (nSaleDtlData) => {
 };
 const getAllNSaleBetween = async (betType, betPeriod, groupId, startSyncSeq, endSyncSeq) => {
     return dbDps2n3.select().from(nSaleDtl).where(and(eq(nSaleDtl.betType, betType), eq(nSaleDtl.betPeriod, betPeriod), eq(nSaleDtl.groupId, groupId), between(nSaleDtl.sync_seq, startSyncSeq, endSyncSeq))).all();
+};
+
+/** this table will only keep the last value of each seqkey, same seqkey will overwrite. UserId and EntityType is not using */
+const sync_seq = sqliteTable('sync_seq', {
+    SeqKey: text('seqkey').primaryKey(), // (betType-betPeriod-groupId)
+    UserId: integer('userId').notNull(),
+    EntityType: integer('entitytype').notNull(),
+    SeqValue: integer('seqvalue').notNull(),
+}, (t) => ({
+    SeqKeyUnique: unique("sync_seq_unique_ongroup").on(t.SeqKey)
+}));
+const toSyncSeqMsg = (entity) => ({
+    EntityType: entity.EntityType,
+    UserId: entity.UserId,
+    SeqValue: entity.SeqValue,
+    SeqKey: entity.SeqKey
+});
+
+/** SeqKey Represents a special string key in the format of BetType-BetPeriod-GroupId. */
+const parseSeqKey = (BetType, BetPeriod, GroupId) => `${BetType}-${BetPeriod}-${GroupId}`;
+
+/** 20240128 : (tz182736)  last test  v9-0127 */
+dps_logger.getSubLogger({ name: "Sale Service api" });
+const getLastSeqByBetPeriod = async (betPeriod) => {
+    // Get the row that matches the maximum value
+    const result = dbDps2n3.select().from(sync_seq)
+        .where(like(sync_seq.SeqKey, `%-${betPeriod}-%`)).all();
+    return result;
+};
+const upsertSyncSeq = async (syncSeq) => {
+    const result = await dbDps2n3.insert(sync_seq).values(syncSeq)
+        .onConflictDoUpdate({
+        target: [sync_seq.SeqKey],
+        set: { SeqValue: syncSeq.SeqValue }
+    }).returning();
+    return result;
 };
 
 const E_CANCELED = new Error('request for lock canceled');
@@ -36243,105 +37224,37 @@ class Mutex {
     }
 }
 
-const sync_seq = sqliteTable('sync_seq', {
-    SyncId: integer('id').primaryKey(),
-    UserId: integer('userId').notNull(),
-    SeqKey: text('seqkey').notNull(), // (betType-betPeriod-groupId)
-    SeqValue: integer('seqvalue').notNull(),
-    EntityType: integer('entitytype'),
-});
-
-/** 20240128 : (tz182736)  last test  v9-0127 */
-dps_logger.getSubLogger({ name: "Sale Service api" });
-const getLastSeqByBetPeriod = async (betPeriod) => {
-    // Get the maximum value of SeqValue for the given betPeriod
-    let maxSeqValue = dbDps2n3
-        .select({ "maxSeqValue": max(sync_seq.SeqValue) })
-        .from(sync_seq)
-        .where(like(sync_seq.SeqKey, `%-${betPeriod}-%`))
-        .get();
-    // Get the row that matches the maximum value
-    const result = dbDps2n3
-        .select()
-        .from(sync_seq)
-        .where(and(like(sync_seq.SeqKey, `%-${betPeriod}-%`), eq(sync_seq.SeqValue, maxSeqValue?.maxSeqValue ?? 0)))
-        .get();
-    return result;
-};
-/** 20240127: all value greater thant given seqValue */
-async function findAllKey_before_join(seqKey, seqValue) {
-    const result = dbDps2n3
-        .select()
-        .from(sync_seq)
-        .where(and(eq(sync_seq.SeqKey, seqKey), lt(sync_seq.SeqValue, seqValue)))
-        .orderBy(asc(sync_seq.SeqValue))
-        .all();
-    return result;
-    // throw new Error("Function not implemented.");
-}
-const insertSyncSeq = async (syncSeq, newSeqValue) => {
-    syncSeq.SeqValue = newSeqValue ?? syncSeq.SeqValue;
-    const result = await dbDps2n3.insert(sync_seq).values(syncSeq).returning();
-    return result;
-};
-const updateSyncSeq = async (syncSeq, newSeqValue) => {
-    const result = await dbDps2n3.update(sync_seq).set({ SeqValue: newSeqValue })
-        .where(and(eq(sync_seq.UserId, syncSeq.UserId), eq(sync_seq.SeqKey, syncSeq.SeqKey), eq(sync_seq.SeqValue, syncSeq.SeqValue), eq(sync_seq.EntityType, syncSeq.EntityType))).returning(); //{ SeqValue: sync_seq.SeqValue }
-    return result;
-};
-
 /**
- * tz182736 Main focus on last seq of each group.
+ * tz182736: (20240202) Main focus on last seq of each group.
  * Sync Seq will generate on every request and allow to skip.
- * TODO: test from 2 clients, base on bingAi, will work if access from fn
  * */
-// node dist/api/data_cache/sync_service.js
-const logger$3 = dps_logger.getSubLogger({ name: "sync service module:" });
+dps_logger.getSubLogger({ name: "sync service module:" });
 const lastSeqMap = new Map();
+const lockMutexes = new WeakMap();
 /** *loading sync seq from database for sync control call from main startup.  */
 const initializeSyncSeqCache = async (BetPeriodList) => {
     // TODO: init updateSeq from database ,
     // Use Promise.all to wait for all the promises to resolve  
     await Promise.all(BetPeriodList.map(async (p) => {
-        // update last seq number
-        var sync = await getLastSeqByBetPeriod(p);
-        if (sync)
-            lastSeqMap.set(sync.SeqKey, sync.SeqValue);
+        var syncSeqListOfBetPeriod = await getLastSeqByBetPeriod(p);
+        syncSeqListOfBetPeriod.forEach(sync => { lastSeqMap.set(sync.SeqKey, sync.SeqValue); });
     }));
-    //  just fyi:  const lastSeqValue = result.reduce((max, obj) => obj.SeqValue > max ? obj.SeqValue : max, result[0].SeqValue);
 };
-// start omitting betperiod to deprecate it
-const upsertSyncSeqValue = async (syncSeq, lastSeq) => {
-    try {
-        const result = (syncSeq.SeqValue == 0)
-            ? await insertSyncSeq(syncSeq, lastSeq)
-            : await updateSyncSeq(syncSeq, lastSeq);
-        return result;
-    }
-    catch (ex) {
-        logger$3.warn(`${ex}`);
-    }
-    //  return result[0].SeqValue;
-    // throw new Error("Function not implemented.");
-};
-const lockMutexes = new WeakMap();
-const readLastSeqValue = async (SeqKey) => lastSeqMap.get(SeqKey);
-const generateNextSeqValue = async (SeqKey) => {
+const upsertSyncSeqValue = async (syncSeq) => await upsertSyncSeq(syncSeq);
+const getLastSeqValue = async (SeqKey) => lastSeqMap.get(SeqKey) ?? 0;
+const getNextSeqValue = async (SeqKey) => {
     const mutex = lockMutexes.get({ synckey: SeqKey }) || new Mutex();
     lockMutexes.set({ synckey: SeqKey }, mutex);
     const release = await mutex.acquire();
     try {
         const updatedSeq = (lastSeqMap.get(SeqKey) ?? 0) + 1;
         lastSeqMap.set(SeqKey, updatedSeq);
+        // should I save db ? or skip
         return updatedSeq;
     }
     finally {
         release();
     }
-};
-/** get all Sync Seq lesser than seqValue paramter */
-const getSyncSeqArray_beforeJoinSeq = async (seqKey, seqValue) => {
-    return await findAllKey_before_join(seqKey, seqValue);
 };
 // call by main interval timer and refill by main initialization
 const purgeSyncSeq = (retainBetPeriod = []) => {
@@ -36416,7 +37329,7 @@ const Auth_Metadata = async (metadata) => {
  * 231224 (tz182736): migrate from betting service. combine repeated field with parent
  * NSaleServiceApi.ts helper partial class
  */
-const logger$2 = dps_logger.getSubLogger({ name: "Sale Service api" });
+const logger$1 = dps_logger.getSubLogger({ name: "Sale Service api" });
 const admin_AuthServerUser = async function (call, callback) {
     // extract apiKey from metadata
     const metadata = call.metadata;
@@ -36490,7 +37403,7 @@ const admin_DeleteServerUser = async function (call, callback) {
         callback(null, { data: `Deleted : ${userName}` });
     }
     catch (ex) {
-        logger$2.info(`!~82:UpsertServerUser: invalid admin `);
+        logger$1.info(`!~82:UpsertServerUser: invalid admin `);
     }
 };
 const admin_updateServerUser = async function (call, callback) {
@@ -36508,85 +37421,14 @@ const admin_updateServerUser = async function (call, callback) {
         callback(null, { data: `${keyvalue}` });
     }
     catch (ex) {
-        logger$2.info(`!~82:UpsertServerUser: invalid admin `);
+        logger$1.info(`!~82:UpsertServerUser: invalid admin `);
     }
 };
 
-/** SeqKey Represents a special string key in the format of BetType-BetPeriod-GroupId. */
-const parseSeqKey = (BetType, BetPeriod, GroupId) => `${BetType}-${BetPeriod}-${GroupId}`;
-
-/**
- * {20270130: new resync module}
- */
-const logger$1 = dps_logger.getSubLogger({ name: "Sale Service api" });
-//#endregion
-const helper_ReSyncDuplexStream = async function (call) {
-    /** authenticate with api key, if fail try user name and if fail emit error and stop. */
-    try {
-        const apikey = call.metadata.get(`${Metadata_tag.Apikey}`)[0];
-        // * get list from authenticated list and send to client
-        const filteredSeqKeyList = authkey_list.get(apikey);
-        logger$1.trace(`start sending syncseq list`);
-        for (const seq of filteredSeqKeyList ?? []) {
-            logger$1.info(`loading seq value ${seq.SeqKey} / ${seq.SeqValue}`);
-            // load syncseq list
-            const updateSeqArray = await getSyncSeqArray_beforeJoinSeq(seq.SeqKey, seq.SeqValue);
-            updateSeqArray.forEach(reSync => {
-                const responseSeqKey = {
-                    SyncId: reSync.SyncId,
-                    UserId: reSync.UserId,
-                    SyncSeqKey: reSync.SeqKey,
-                    SeqValue: reSync.SeqValue,
-                    EntityType: reSync.EntityType
-                };
-                logger$1.info(`seq value ${reSync.SyncId} / ${reSync.SeqValue}`);
-                call.write({ SyncSeq: responseSeqKey }); // !~3 (C) DpsStream
-            });
-        }
-        //call.end();
-        // * reponse client request for missing sale
-        call.on("data", async (mainRStream) => {
-            logger$1.trace(`!~108 mainRStream type and UserId:  ${mainRStream.SyncType}-${mainRStream.UserId} `);
-            //  !~5 (R) DpsStream Handle nSale data request
-            if ("SyncSeq" == mainRStream.SyncType) {
-                const stream4_rec = mainRStream.SyncSeq;
-                // Process the incoming message and send a response
-                const req_data_props = { betType: mainRStream.BetType, betPeriod: mainRStream.BetPeriod, groupId: mainRStream.UserId, syncSeq: stream4_rec.SeqValue, };
-                // load from database
-                switch (stream4_rec.EntityType) {
-                    case EntityTypeEnumPb.NSale:
-                        const nSaleData = await find$1(req_data_props);
-                        logger$1.debug(`!~5 (Rec) NSale data ${nSaleData?.customerName}`);
-                        if (nSaleData) {
-                            const nSaleResponse = {
-                                BetType: mainRStream.BetType,
-                                BetPeriod: mainRStream.BetPeriod,
-                                UserId: mainRStream.UserId,
-                                NSale: toNSaleMsg(nSaleData),
-                            };
-                            call.write(nSaleResponse);
-                        }
-                        break;
-                    case EntityTypeEnumPb.NSaleDtl:
-                        const nSaleDtlData = await find(req_data_props);
-                        logger$1.debug(`!~5 (Rec) NSaleDtl data ${nSaleDtlData?.numberFormula}`);
-                        if (nSaleDtlData) {
-                            const saleDtlResponse = {
-                                BetType: mainRStream.BetType,
-                                BetPeriod: mainRStream.BetPeriod,
-                                UserId: mainRStream.UserId,
-                                NSaleDtl: toNSaleDtlMsg(nSaleDtlData),
-                            };
-                            call.write(saleDtlResponse);
-                        }
-                        break;
-                }
-            }
-        });
-    }
-    catch (ex) {
-        logger$1.error(` grpc resync error ${ex}`);
-    }
+// Original file: src/proto/NumberSaleService.proto
+const EntityTypeEnumPb = {
+    NSale: 0,
+    NSaleDtl: 1,
 };
 
 /**3
@@ -36595,9 +37437,9 @@ const helper_ReSyncDuplexStream = async function (call) {
 const logger = dps_logger.getSubLogger({ name: "Sale Service api" });
 //#endregion
 /** SeqKey => ApiKey => Call [SeqKey and ApiKey list was assign in authorization function] */
-const BroadcastSeqKeyList = new Map();
+const _broadcastSeqKeyList = new Map();
 function Broadcast_bySeqKey(seqKey, msg) {
-    const callList = BroadcastSeqKeyList.get(seqKey);
+    const callList = _broadcastSeqKeyList.get(seqKey);
     if (callList == null || callList == undefined)
         return;
     for (const call of callList.values()) {
@@ -36611,8 +37453,6 @@ class NSaleServiceClass {
     AssignUserSaleGroup = admin_AssignUserSaleGroup;
     DeleteServerUser = admin_DeleteServerUser;
     UpsertServerUser = admin_updateServerUser;
-    // TODO: to be removed
-    ReSyncDuplexStream = helper_ReSyncDuplexStream;
     RemoveNSale;
     RemoveNSaleDtl;
     JoinNSaleStream = async function (call) {
@@ -36621,7 +37461,7 @@ class NSaleServiceClass {
             // TODO: for test only, later move to auth function later.
             // login with username and emit error
             if (!IsApiKeyExist_AuthList(apikey)) {
-                logger.trace(`invalid apiKey : ${apikey}, now trying username and password.`);
+                logger.info(`invalid apiKey : ${apikey}, now trying username and password.`);
                 const auth_login = await Auth_Metadata(call.metadata);
                 if (!auth_login.valid) {
                     apikey = auth_login.apiKey;
@@ -36633,31 +37473,39 @@ class NSaleServiceClass {
             logger.info(`!~79: auth apikey ${apikey} was inserted of ttl key ${authkey_list.size}.`);
             // get group list and insert into SeqKey  
             const joinReqMsg = call.request;
+            /** user request group list */
             const reqGroupList = joinReqMsg.GroupList;
+            /** group list from user database */
             const assignedGroupList = await findGroupIdListByApikey(apikey);
             for (const item of reqGroupList) {
+                logger.trace(`!~92 ${new Date().toISOString()}: resync loop start for group id (${item.GroupId})`);
                 if (assignedGroupList.includes(item.GroupId)) {
                     let seqKey = parseSeqKey(joinReqMsg.BetType, joinReqMsg.BetPeriod, item.GroupId);
                     // join broadcase list
-                    let syncKey = BroadcastSeqKeyList.get(seqKey) || new Map();
+                    let syncKey = _broadcastSeqKeyList.get(seqKey) || new Map();
                     syncKey.set(apikey, call);
-                    BroadcastSeqKeyList.set(seqKey, syncKey);
+                    _broadcastSeqKeyList.set(seqKey, syncKey);
                     // don't mind overlap 1 or 2 nSale repeated, resend sale data between client last seq and client join seq
-                    const serverLastSeqKey = await readLastSeqValue(seqKey);
-                    // resend nsale data,
-                    var nSaleList = await getAllNSaleBetween$1(joinReqMsg.BetType, joinReqMsg.BetPeriod, item.GroupId, item.ClientLastSyncSeq, serverLastSeqKey);
+                    const currentSeqValue = await getLastSeqValue(seqKey);
+                    logger.info(`!~104 seqkey ${seqKey} , reqSeqValue ${item.ClientLastSyncSeq} , currentSeqValue: ${currentSeqValue}  `);
+                    // send missing nsale data,
+                    var nSaleList = await getAllNSaleBetween$1(joinReqMsg.BetType, joinReqMsg.BetPeriod, item.GroupId, item.ClientLastSyncSeq, currentSeqValue);
                     for (const nSaleItem of nSaleList) {
-                        const nSaleMsg = { NSale: nSaleItem };
+                        const nSaleMsg = { BetType: joinReqMsg.BetType, BetPeriod: joinReqMsg.BetPeriod, GroupId: item.GroupId,
+                            UserId: nSaleItem.userId, NSale: toNSaleMsg(nSaleItem) };
+                        logger.info(`send out nSale (${nSaleItem.id})`);
                         call.write(nSaleMsg);
                     }
-                    // resend nsaleDtl data,
-                    var nSaleDtlList = await getAllNSaleBetween(joinReqMsg.BetType, joinReqMsg.BetPeriod, item.GroupId, item.ClientLastSyncSeq, serverLastSeqKey);
+                    // send missing nsaleDtl data,
+                    var nSaleDtlList = await getAllNSaleBetween(joinReqMsg.BetType, joinReqMsg.BetPeriod, item.GroupId, item.ClientLastSyncSeq, currentSeqValue);
                     for (const nSaleDtlItem of nSaleDtlList) {
-                        const nSaleMsg = { NSaleDtl: nSaleDtlItem };
+                        const nSaleMsg = { BetType: joinReqMsg.BetType, BetPeriod: joinReqMsg.BetPeriod, GroupId: item.GroupId,
+                            UserId: nSaleDtlItem.userId, NSaleDtl: toNSaleDtlMsg(nSaleDtlItem) };
+                        logger.info(`send out nSaleDtl (${nSaleDtlItem.id}, n ${nSaleDtlItem.numberFormula})`);
                         call.write(nSaleMsg);
                     }
-                }
-            }
+                } // assigned group list
+            } //req group list
             logger.trace(`!~86: reqList:${reqGroupList.length}, assignedList: ${assignedGroupList.length}`);
             // Remove the client from the map 
             call.on("end", () => {
@@ -36682,33 +37530,20 @@ class NSaleServiceClass {
             try {
                 // generate syncSeq
                 const seqKey = parseSeqKey(msg.BetType, msg.BetPeriod, msg.GroupId);
-                const oldSyncSeq = { SeqKey: seqKey, SeqValue: msg.sync_seq ?? 0, UserId: msg.UserId, EntityType: EntityTypeEnumPb.NSale };
-                const newSeqValue = await generateNextSeqValue(seqKey);
-                logger.trace(`!~137 reEntry sync id-seq : ${oldSyncSeq.SyncId} - ${oldSyncSeq.SeqValue}`);
-                const syncSeqUpsertResult = await upsertSyncSeqValue(oldSyncSeq, newSeqValue); // for syncid
+                const newSeqValue = await getNextSeqValue(seqKey);
                 // upsert nSaleEntity database
                 msg.sync_seq = newSeqValue;
                 await upsertNSale(toNSaleEntity(msg));
-                Broadcast_bySeqKey(seqKey, {
-                    BetType: msg.BetType, BetPeriod: msg.BetPeriod, GroupId: msg.GroupId,
-                    UserId: msg.UserId, NSale: msg
-                });
-                // TODO: follow up here> hurry catch up. 240111 tz
-                const syncSeqMsgRspn = {
-                    SyncId: syncSeqUpsertResult[0].SyncId,
-                    UserId: msg.UserId,
-                    SyncSeqKey: seqKey,
-                    SeqValue: newSeqValue,
-                    EntityType: EntityTypeEnumPb.NSale,
-                };
-                logger.info(`!~164: insert nSale id / seq /userId: ${msg.Id}, ${syncSeqMsgRspn.SeqValue}, ${syncSeqMsgRspn.UserId} \n`);
-                callback(null, syncSeqMsgRspn);
+                Broadcast_bySeqKey(seqKey, { BetType: msg.BetType, BetPeriod: msg.BetPeriod, GroupId: msg.GroupId, UserId: msg.UserId, NSale: msg });
+                // upsert sync seq and resposne as msg
+                const syncSeq = { SeqKey: seqKey, UserId: msg.UserId, EntityType: EntityTypeEnumPb.NSale, SeqValue: newSeqValue };
+                await upsertSyncSeqValue(syncSeq);
+                logger.trace(`!~166: seqValue:${syncSeq.SeqValue}, nSaleId: ${msg.Id}/${msg.CustomerName}`);
+                callback(null, toSyncSeqMsg(syncSeq));
             }
             catch (e) {
                 logger.error(`!~169: Upsert NSale error ${msg.sync_seq}, err: ${e}`);
             }
-            // TODO : insert data cache, will remove later ?
-            //   _NSaleMsg = NSaleData.insertNSaleCache(_NSaleMsg);
         }
     };
     UpsertNSaleDtl = async function (call, callback) {
@@ -36717,26 +37552,16 @@ class NSaleServiceClass {
         if (msg) {
             try {
                 let seqKey = parseSeqKey(msg.BetType, msg.BetPeriod, msg.GroupId);
-                const oldSyncSeq = { SeqKey: seqKey, SeqValue: msg.sync_seq ?? 0, UserId: msg.UserId, EntityType: EntityTypeEnumPb.NSaleDtl };
-                const newSeqValue = await generateNextSeqValue(seqKey);
-                logger.trace(`!~181 reEntry sync id-seq dtl : ${oldSyncSeq.SyncId} - ${oldSyncSeq.SeqValue}`);
-                const syncSeqUpsertResult = await upsertSyncSeqValue(oldSyncSeq, newSeqValue);
+                const newSeqValue = await getNextSeqValue(seqKey);
                 // upsert nsale details to database
                 msg.sync_seq = newSeqValue;
                 await upsertNSaleDtl(toNSaleDtlEntity(msg));
-                Broadcast_bySeqKey(seqKey, {
-                    BetType: msg.BetType, BetPeriod: msg.BetPeriod, GroupId: msg.GroupId,
-                    UserId: msg.UserId, NSaleDtl: msg
-                });
-                const syncSeqMsgRspn = {
-                    SyncId: syncSeqUpsertResult[0].SyncId,
-                    UserId: msg.UserId,
-                    SyncSeqKey: seqKey,
-                    SeqValue: newSeqValue,
-                    EntityType: EntityTypeEnumPb.NSaleDtl,
-                };
-                logger.info(`!~203: insert nSaleDtl id / seq / nSaleDtl values : ${msg.Id}, ${msg.sync_seq}, ${msg.NumberFormula} \n`);
-                callback(null, syncSeqMsgRspn);
+                Broadcast_bySeqKey(seqKey, { BetType: msg.BetType, BetPeriod: msg.BetPeriod, GroupId: msg.GroupId, UserId: msg.UserId, NSaleDtl: msg });
+                // upsert sync seq and resposne as msg
+                const syncSeq = { SeqKey: seqKey, UserId: msg.UserId, EntityType: EntityTypeEnumPb.NSale, SeqValue: newSeqValue };
+                await upsertSyncSeqValue(syncSeq);
+                logger.trace(`!~166: seqValue:${syncSeq.SeqValue}, nSaleId: ${msg.Id}/${msg.NumberFormula}`);
+                callback(null, toSyncSeqMsg(syncSeq));
             }
             catch (e) {
                 logger.error(`!~208: Upsert Error ${msg.sync_seq} , err: ${e}`);
