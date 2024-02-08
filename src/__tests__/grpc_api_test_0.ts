@@ -28,6 +28,7 @@ async function initLocalDataFile(groupId: number, userId: string) {
             if (err) {
                 console.error(`Error reading the file: ${err}, create new one.`);
                 (nSaleId = 0), (nSaleDtlId = 0);
+                fs.writeFile(filePath, `${""} ${0} ${0}`, (err) => { });
             } else {
                 const last_id = data.split(" ");
                 nSaleId = parseInt(last_id[0]);
@@ -51,8 +52,8 @@ async function initLocalDataFile(groupId: number, userId: string) {
 //#endregion
 
 // #region start client grpc connection
-// const host = "192.168.1.3:50051";
-const host = "0.0.0.0:50051";
+const host = "https://dps24-tyt.onrender.com:50051";
+//const host = "0.0.0.0:50051";
 const packageDefinition = protoLoader.loadSync("NumberSaleService.proto", utils.protoLoaderConfig);
 const proto = grpc_js.loadPackageDefinition(packageDefinition) as unknown as ProtoGrpcType;
 const client = new proto.Dps2n3Grpc.NSaleService(host, grpc_js.credentials.createInsecure());
@@ -84,7 +85,7 @@ async function onClientReady(): Promise<void> {
             fs.writeFile(filePath, `${apiKey} ${0} ${0}`, (err) => { });
             break;
         case "--2":
-            await authenticatedClient(client, "0wBkClyPbymfPkN6AC1UK");
+            await authenticatedClient(client, "KwiEmkkFqKeARRmNXFDvb");
             break;
         case "--3":
             break;

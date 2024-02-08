@@ -47,7 +47,7 @@ export async function find({betType,betPeriod,groupId,userId,syncSeq}: DpsQueryA
 
 export const upsertNSaleDtl = async (nSaleDtlData: NSaleDtl_insert) => {
   return await dbDps2n3.insert(nSaleDtl).values(nSaleDtlData).onConflictDoUpdate({
-    target: [nSaleDtl.id, nSaleDtl.nSaleId, nSaleDtl.groupId, nSaleDtl.userId, nSaleDtl.betType, nSaleDtl.betPeriod],
+    target: [nSaleDtl.id, nSaleDtl.nSaleId, nSaleDtl.groupId, nSaleDtl.userId],
     set: nSaleDtlData
   }).returning();
 }

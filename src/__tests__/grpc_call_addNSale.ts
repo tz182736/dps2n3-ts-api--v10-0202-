@@ -8,7 +8,7 @@ import { BetTypeEnumPb } from "../proto/generated/Dps2n3Grpc/BetTypeEnumPb.js";
 
 export async function call_addNSale(client: NSaleServiceClient) {
     const metadata = new grpc_js.Metadata();
-    metadata.set("apikey", "secret");
+    metadata.set("u1", "");
 
     for (let i = 0; i < 5; i++) {
         const nSaleMsg = <NSaleMsg>{

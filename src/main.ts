@@ -17,6 +17,7 @@ import * as sync_manager_ins from "./api/SyncSeqService.js";
 import { BetTypeEnumPb } from "./proto/generated/Dps2n3Grpc/BetTypeEnumPb.js";
 
 const host: string = "0.0.0.0:50051";
+// const host = "https://dps24-tyt.onrender.com:50051";
 
 async function main() {
   try {

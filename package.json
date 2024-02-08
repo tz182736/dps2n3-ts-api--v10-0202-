@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "main": "node ./dist/main.js",
-    "build": "tsc && cp src/*.proto dist/",
+    "build": "tsc && cp src/proto/*.proto dist/proto",
     "proto": "tsc && robocopy ./src/proto/ ./dist/proto/ *.proto ",
     "initdb": "drizzle-kit generate:sqlite && drizzle-kit push:sqlite  "
   },
@@ -19,7 +19,8 @@
     "google-protobuf": "^3.21.2",
     "nanoid": "^5.0.5",
     "rollup": "^4.9.6",
-    "tslog": "^4.9.2"
+    "tslog": "^4.9.2",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",

@@ -47,7 +47,7 @@ export const getAllNSaleBetween = async (betType: number, betPeriod: number, gro
 
 export const upsertNSale = async (nSaleData: NSale_insert) => {
   return await dbDps2n3.insert(nSale).values(nSaleData).onConflictDoUpdate({
-    target: [nSale.id, nSale.groupId, nSale.userId, nSale.betType, nSale.betPeriod],
+    target: [nSale.id, nSale.groupId, nSale.userId],
     set: nSaleData
   }).returning();
 }

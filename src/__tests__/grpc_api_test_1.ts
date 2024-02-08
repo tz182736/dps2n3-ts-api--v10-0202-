@@ -18,9 +18,9 @@ export async function authenticatedClient(client: NSaleServiceClient, apikey?: s
     let apiKey: string | undefined;
 
     const metadata = new grpc_js.Metadata();
-    metadata.set(`${Metadata_tag.Apikey}`, apikey ?? "0wBkClyPbymfPkN6AC1UK");
+    metadata.set(`${Metadata_tag.Apikey}`, apikey ?? "KwiEmkkFqKeARRmNXFDvb");
     metadata.set(`${Metadata_tag.Username}`, "u1");
-    metadata.set(`${Metadata_tag.Password}`, "p1");
+    metadata.set(`${Metadata_tag.Password}`, "");
 
     client.authServerUser(empty, metadata, (err, response) => {
         if (err) { console.error(err); }
